@@ -102,6 +102,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+builder.Services.AddScoped<StationService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline
