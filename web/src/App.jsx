@@ -1,121 +1,129 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
+import { useEffect } from 'react'
+import ReservationsModule from './features/reservations/ReservationsModule.jsx'
+import { navigate, paths, useRoute } from './features/reservations/router.js'
 import './App.css'
 
+const NAV_ITEMS = [
+  { label: 'Accounts', owner: 'Member 1' },
+  { label: 'Stations', owner: 'Member 2' },
+  { label: 'Reservations', owner: 'Member 3', active: true },
+  { label: 'Monitoring', owner: 'Member 4' },
+]
+
+function PortalHome() {
+  return (
+    <section className="portal-home">
+      <span className="portal-home__tag">Staff portal</span>
+      <h1>Smart Solar Microgrid</h1>
+      <p>Accounts, stations, reservations and monitoring for the campus solar grid.</p>
+      <a
+        className="portal-home__card"
+        href={paths.home()}
+        onClick={(event) => {
+          event.preventDefault()
+          navigate(paths.home())
+        }}
+      >
+        <span className="portal-home__card-icon material-symbols-outlined" aria-hidden="true">
+          event_available
+        </span>
+        <span className="portal-home__card-copy">
+          <strong>Reservations</strong>
+          <span>Book, change and cancel energy slots</span>
+        </span>
+        <span className="material-symbols-outlined" aria-hidden="true">
+          arrow_forward
+        </span>
+      </a>
+    </section>
+  )
+}
+
 function App() {
-  const [count, setCount] = useState(0)
+  const route = useRoute()
+  const onReservations = route.name !== 'outside'
+
+  useEffect(() => {
+    if (!onReservations) document.title = 'Smart Solar Microgrid'
+  }, [onReservations])
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-shell">
+      <header className="app-header">
+        <div className="app-header__inner">
+          <a
+            className="app-brand"
+            href="/"
+            onClick={(event) => {
+              event.preventDefault()
+              navigate('/')
+            }}
+          >
+            <span className="app-brand__mark">
+              <span className="material-symbols-outlined" aria-hidden="true">
+                wb_sunny
+              </span>
+            </span>
+            <span className="app-brand__text">
+              <strong>Smart Solar Microgrid</strong>
+              <span>Staff portal</span>
+            </span>
+          </a>
 
-      <div className="ticks"></div>
+          <nav className="app-nav" aria-label="Main">
+            {NAV_ITEMS.map((item) =>
+              item.active ? (
+                <a
+                  key={item.label}
+                  href={paths.home()}
+                  className={`app-nav__link${onReservations ? ' is-active' : ''}`}
+                  aria-current={onReservations ? 'page' : undefined}
+                  onClick={(event) => {
+                    event.preventDefault()
+                    navigate(paths.home())
+                  }}
+                >
+                  {item.label}
+                </a>
+              ) : (
+                <span
+                  key={item.label}
+                  className="app-nav__link is-disabled"
+                  title={`${item.label} is built by ${item.owner}`}
+                >
+                  {item.label}
+                </span>
+              ),
+            )}
+          </nav>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <div className="app-header__end">
+            <span className="app-mode">
+              <span className="app-mode__dot" aria-hidden="true" />
+              Mock data mode
+            </span>
+            <div className="app-user">
+              <span className="app-user__text">
+                <strong>Staff user</strong>
+                <span>Grid Operator</span>
+              </span>
+              <span className="app-user__avatar">GO</span>
+            </div>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+      <main className="app-main">
+        {onReservations ? <ReservationsModule /> : <PortalHome />}
+      </main>
+
+      <footer className="app-footer">
+        <div className="app-footer__inner">
+          <span>© 2026 Smart Solar Microgrid</span>
+          <span>{onReservations ? 'Reservation management · Member 3' : 'Staff portal'}</span>
+        </div>
+      </footer>
+    </div>
   )
 }
 
