@@ -1,0 +1,116 @@
+import { useEffect, useState } from 'react';
+import ActionSummary from './components/ActionSummary';
+import CreateBooking from './components/CreateBooking';
+import EditBooking from './components/EditBooking';
+import ReservationDetails from './components/ReservationDetails';
+import ReservationHome from './components/ReservationHome';
+import { Icon, PageHeader } from './components/ui';
+import { useReferenceData } from './hooks';
+import { resetDemoData } from './mockReservationApi';
+import { navigate, paths, useRoute } from './router';
+import './reservations.css';
+
+const APP_NAME = 'Smart Solar Microgrid';
+
+const PAGE_TITLES = {
+  home: 'Energy-slot bookings',
+  create: 'Book an energy slot',
+  details: 'Reservation details',
+  edit: 'Change booking',
+  summary: 'Booking summary',
+  notFound: 'Page not found',
+};
+
+export default function ReservationsModule() {
+  const refData = useReferenceData();
+  const route = useRoute();
+  const [demoKey, setDemoKey] = useState(0);
+
+  const missingSummary = route.name === 'summary' && !route.summary;
+
+  useEffect(() => {
+    if (missingSummary) navigate(paths.details(route.id), { replace: true });
+  }, [missingSummary, route.id]);
+
+  useEffect(() => {
+    const title = PAGE_TITLES[route.name];
+    document.title = title ? `${title} · ${APP_NAME}` : APP_NAME;
+  }, [route.name]);
+
+  const goHome = () => navigate(paths.home());
+  const goCreate = () => navigate(paths.create());
+  const goDetails = (id) => navigate(paths.details(id));
+  const showSummary = (action) => (summary, previous = null) =>
+    navigate(paths.summary(summary.reservationId, action), { state: { summary, previous } });
+
+  function handleResetDemo() {
+    resetDemoData();
+    setDemoKey((value) => value + 1);
+  }
+
+  return (
+    <div className="rm-module">
+      {route.name === 'home' && (
+        <ReservationHome
+          refData={refData}
+          refreshKey={demoKey}
+          onCreate={goCreate}
+          onOpen={goDetails}
+          onResetDemo={handleResetDemo}
+        />
+      )}
+
+      {route.name === 'create' && (
+        <CreateBooking refData={refData} onBack={goHome} onCreated={showSummary('created')} />
+      )}
+
+      {route.name === 'details' && (
+        <ReservationDetails
+          key={route.id}
+          reservationId={route.id}
+          refData={refData}
+          onBack={goHome}
+          onEdit={(id) => navigate(paths.edit(id))}
+          onCancelled={showSummary('cancelled')}
+        />
+      )}
+
+      {route.name === 'edit' && (
+        <EditBooking
+          key={route.id}
+          reservationId={route.id}
+          refData={refData}
+          onBack={() => goDetails(route.id)}
+          onUpdated={showSummary('updated')}
+        />
+      )}
+
+      {route.name === 'summary' && !missingSummary && (
+        <ActionSummary
+          action={route.action}
+          summary={route.summary}
+          previous={route.previous}
+          refData={refData}
+          onViewDetails={goDetails}
+          onNewBooking={goCreate}
+          onHome={goHome}
+        />
+      )}
+
+      {route.name === 'notFound' && (
+        <div className="rm-page rm-page--narrow">
+          <PageHeader onBack={goHome} backLabel="Reservations" eyebrow="404" title="Page not found" />
+          <section className="rm-card">
+            <p className="rm-muted">
+              There is no reservation page at <code className="rm-reference">{window.location.pathname}</code>.
+            </p>
+            <button type="button" className="rm-button rm-button--primary" onClick={goHome}>
+              <Icon name="home" />
+              Go to reservations
+            </button>
+          </section>
+        </div>
+      )}
+    </div>
+  );
+}
