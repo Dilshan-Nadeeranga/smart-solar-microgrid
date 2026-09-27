@@ -130,4 +130,47 @@ public class UserService
 
     return (true, "Login successful.", response);
 }
+
+
+public async Task<(bool Success, string Message, User? User)> InitializeBackofficeAsync(
+    User user,
+    string password)
+{
+    var existingBackoffice = await _userRepository.GetByRoleAsync(
+        Role.BACKOFFICE
+    );
+
+    if (existingBackoffice != null)
+    {
+        return (
+            false,
+            "Initial Backoffice account has already been created.",
+            null
+        );
+    }
+
+    if (string.IsNullOrWhiteSpace(password))
+    {
+        return (false, "Password is required.", null);
+    }
+
+    user.Role = Role.BACKOFFICE;
+    user.AccountStatus = AccountStatus.ACTIVE;
+
+    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+
+    user.CreatedDate = DateTime.UtcNow;
+    user.UpdatedDate = DateTime.UtcNow;
+
+    await _userRepository.CreateAsync(user);
+
+    user.PasswordHash = string.Empty;
+
+    return (
+        true,
+        "Initial Backoffice account created successfully.",
+        user
+    );
+}
+
 }

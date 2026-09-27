@@ -42,4 +42,49 @@ public class AuthController : ControllerBase
 
         return Ok(result.Response);
     }
+
+[HttpPost("initialize-backoffice")]
+public async Task<IActionResult> InitializeBackoffice(
+    InitializeBackofficeRequest request)
+{
+    if (string.IsNullOrWhiteSpace(request.NIC) ||
+        string.IsNullOrWhiteSpace(request.Name) ||
+        string.IsNullOrWhiteSpace(request.Email) ||
+        string.IsNullOrWhiteSpace(request.Password))
+    {
+        return BadRequest(new
+        {
+            message = "NIC, name, email and password are required."
+        });
+    }
+
+    var user = new User
+    {
+        NIC = request.NIC,
+        Name = request.Name,
+        Email = request.Email,
+        Phone = request.Phone,
+        Address = request.Address
+    };
+
+    var result = await _userService.InitializeBackofficeAsync(
+        user,
+        request.Password
+    );
+
+    if (!result.Success)
+    {
+        return Conflict(new
+        {
+            message = result.Message
+        });
+    }
+
+    return CreatedAtAction(
+        nameof(Login),
+        null,
+        result.User
+    );
+}
+    
 }

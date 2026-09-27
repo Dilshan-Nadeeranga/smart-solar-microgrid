@@ -44,4 +44,12 @@ public class UserRepository
     {
         await _users.DeleteOneAsync(user => user.NIC == nic);
     }
+
+
+    public async Task<User?> GetByRoleAsync(Role role)
+{
+    return await _users
+        .Find(user => user.Role == role)
+        .FirstOrDefaultAsync();
+}
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SolarGrid.Api.Models;
 using SolarGrid.Api.Services;
@@ -60,6 +61,7 @@ public class UserController : ControllerBase
         );
     }
 
+    [Authorize]
     [HttpGet("{nic}")]
     public async Task<IActionResult> GetUser(string nic)
     {
@@ -77,4 +79,14 @@ public class UserController : ControllerBase
 
         return Ok(user);
     }
+
+    [Authorize(Roles = "BACKOFFICE")]
+[HttpGet("backoffice-test")]
+public IActionResult BackofficeTest()
+{
+    return Ok(new
+    {
+        message = "You have Backoffice access."
+    });
+}
 }
