@@ -1,0 +1,414 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { stationsApi } from '../../../api.js'
+
+const emptyStation = {
+  name: '',
+  address: '',
+  latitude: '',
+  longitude: '',
+  capacityKw: '',
+  batteryStorageSlots: '',
+}
+
+function toStationBody(form) {
+  return {
+    name: form.name.trim(),
+    address: form.address.trim(),
+    latitude: Number(form.latitude),
+    longitude: Number(form.longitude),
+    capacityKw: Number(form.capacityKw),
+    batteryStorageSlots: Number(form.batteryStorageSlots || 0),
+  }
+}
+
+function validateStation(form) {
+  const body = toStationBody(form)
+  if (!body.name) return 'Station name is required.'
+  if (Number.isNaN(body.latitude) || body.latitude < -90 || body.latitude > 90) {
+    return 'Latitude must be between -90 and 90.'
+  }
+  if (Number.isNaN(body.longitude) || body.longitude < -180 || body.longitude > 180) {
+    return 'Longitude must be between -180 and 180.'
+  }
+  if (!(body.capacityKw > 0)) return 'Capacity must be greater than zero.'
+  return null
+}
+
+function stationToForm(station) {
+  return {
+    name: station.name ?? '',
+    address: station.address ?? '',
+    latitude: station.latitude ?? '',
+    longitude: station.longitude ?? '',
+    capacityKw: station.capacityKw ?? '',
+    batteryStorageSlots: station.batteryStorageSlots ?? '',
+  }
+}
+
+function fieldClass() {
+  return 'h-11 w-full rounded-lg bg-surface-container-lowest px-3.5 text-body-sm text-on-surface shadow-sm outline-none focus:ring-2 focus:ring-primary-container'
+}
+
+export default function StationsPage() {
+  const [stations, setStations] = useState([])
+  const [query, setQuery] = useState('')
+  const [selectedId, setSelectedId] = useState('')
+  const [showEdit, setShowEdit] = useState(false)
+  const [editForm, setEditForm] = useState(emptyStation)
+  const [notice, setNotice] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  const visibleStations = useMemo(() => {
+    const text = query.trim().toLowerCase()
+    if (!text) return stations
+    return stations.filter((station) =>
+      `${station.name} ${station.address}`.toLowerCase().includes(text),
+    )
+  }, [stations, query])
+
+  const totalCapacity = stations.reduce((sum, station) => sum + Number(station.capacityKw || 0), 0)
+  const totalSlots = stations.reduce((sum, station) => sum + Number(station.batteryStorageSlots || 0), 0)
+  const selected = stations.find((station) => station.id === selectedId)
+
+  function toast(type, text) {
+    setNotice({ type, text })
+  }
+
+  async function loadStations(keepId = selectedId) {
+    const data = await stationsApi.list()
+    setStations(data)
+    return data.find((station) => station.id === keepId) ? keepId : data[0]?.id || ''
+  }
+
+  async function openStation(id, { edit = false } = {}) {
+    setSelectedId(id)
+    setShowEdit(edit)
+    const station = await stationsApi.get(id)
+    setEditForm(stationToForm(station))
+  }
+
+  useEffect(() => {
+    loadStations('')
+      .then((id) => {
+        if (id) return openStation(id)
+      })
+      .catch((error) => toast('error', error.message))
+  }, [])
+
+  async function handleUpdate(event) {
+    event.preventDefault()
+    const error = validateStation(editForm)
+    if (error) {
+      toast('error', error)
+      return
+    }
+    setLoading(true)
+    try {
+      await stationsApi.update(selectedId, toStationBody(editForm))
+      await loadStations(selectedId)
+      setShowEdit(false)
+      toast('ok', 'Station updated.')
+    } catch (error) {
+      toast('error', error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function confirmDeactivate() {
+    setConfirmOpen(false)
+    setLoading(true)
+    try {
+      await stationsApi.deactivate(selectedId)
+      const nextId = await loadStations('')
+      if (nextId) await openStation(nextId)
+      else setSelectedId('')
+      toast('ok', 'Station deactivated.')
+    } catch (error) {
+      toast('error', error.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-8">
+      {notice && (
+        <div
+          className={`flex items-center justify-between rounded-xl border-l-4 bg-surface-container-lowest px-4 py-3 shadow-md ${
+            notice.type === 'error' ? 'border-[#B91C1C]' : 'border-primary'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+                notice.type === 'error' ? 'bg-[#FEE2E2]' : 'bg-[#DCFCE7]'
+              }`}
+            >
+              <span
+                className={`material-symbols-outlined text-[18px] ${
+                  notice.type === 'error' ? 'text-[#B91C1C]' : 'text-[#15803D]'
+                }`}
+              >
+                {notice.type === 'error' ? 'error' : 'check_circle'}
+              </span>
+            </div>
+            <p className="font-medium text-on-surface">{notice.text}</p>
+          </div>
+          <button
+            type="button"
+            className="rounded-lg p-1.5 text-secondary hover:bg-surface-container hover:text-on-surface"
+            onClick={() => setNotice(null)}
+          >
+            <span className="material-symbols-outlined text-[18px]">close</span>
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col justify-between gap-4 border-b border-outline-variant/30 pb-2 md:flex-row md:items-end">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold uppercase tracking-wide text-on-primary-container">
+              BackOfficer Control
+            </span>
+            <span className="text-label-sm text-secondary">
+              {selected ? `Station ${selected.id.slice(-6)}` : 'No station selected'}
+            </span>
+          </div>
+          <h1 className="font-headline-xl text-headline-xl font-bold tracking-tight text-on-surface">
+            Station Management
+          </h1>
+          <p className="text-secondary">
+            Manage solar stations and battery storage capacities.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3 rounded-xl bg-surface-container-lowest px-4 py-2 shadow-sm">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container text-primary">
+              <span className="material-symbols-outlined text-[18px]">solar_power</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-label-sm uppercase text-secondary">Nominal output</span>
+              <span className="font-bold text-on-surface">{totalCapacity} kW</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-xl bg-surface-container-lowest px-4 py-2 shadow-sm">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#DCFCE7] text-[#15803D]">
+              <span className="material-symbols-outlined text-[18px]">battery_charging_full</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-label-sm uppercase text-secondary">Battery slots</span>
+              <span className="font-bold text-on-surface">{totalSlots} total</span>
+            </div>
+          </div>
+          <Link
+            to="/dashboard/stations/create"
+            className="flex h-11 items-center gap-2 rounded-lg bg-primary-container px-5 text-label-md font-semibold text-on-primary-container shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            Create station
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-8">
+        <div className="flex w-full flex-col gap-6">
+          <div className="flex w-full flex-col gap-5 rounded-2xl bg-surface-container-lowest p-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[20px] text-secondary">ev_station</span>
+                <h2 className="font-headline-md text-headline-md font-semibold text-on-surface">All stations</h2>
+              </div>
+              <span className="flex items-center gap-1.5 rounded-full bg-[#DCFCE7] px-2.5 py-0.5 text-label-sm font-semibold text-[#15803D]">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#15803D]" />
+                {stations.length} Active
+              </span>
+            </div>
+            <p className="-mt-2 text-secondary">
+              Select a station to update its details.
+            </p>
+            <div className="relative">
+              <span className="material-symbols-outlined absolute top-3 left-3 text-[18px] text-secondary">search</span>
+              <input
+                className="h-10 w-full rounded-lg bg-surface-container-low pr-3 pl-9 text-on-surface outline-none placeholder:text-secondary focus:ring-2 focus:ring-primary-container"
+                placeholder="Filter stations..."
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              {visibleStations.length === 0 && (
+                <p className="text-secondary">No stations yet.</p>
+              )}
+              {visibleStations.map((station) => {
+                const active = station.id === selectedId
+                return (
+                  <div
+                    key={station.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openStation(station.id).catch((error) => toast('error', error.message))}
+                    onKeyDown={(event) => {
+                      if (event.target !== event.currentTarget) return
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault()
+                        openStation(station.id).catch((error) => toast('error', error.message))
+                      }
+                    }}
+                    className={`flex cursor-pointer flex-col gap-2.5 rounded-xl p-4 text-left shadow-sm transition ${
+                      active
+                        ? 'border-2 border-[#FACC15] bg-[#FEF9C3]'
+                        : 'bg-surface-container-low hover:bg-surface-container'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex flex-col">
+                        <span className="flex items-center gap-1.5 font-bold text-on-surface">
+                          {station.name}
+                          {active && (
+                            <span className="material-symbols-outlined text-[16px] text-primary">verified</span>
+                          )}
+                        </span>
+                        <span className="flex items-center gap-1 text-secondary">
+                          <span className="material-symbols-outlined text-[14px]">location_on</span>
+                          {station.address || 'No address'}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          aria-label={`Edit ${station.name}`}
+                          title="Edit station"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            openStation(station.id, { edit: true }).catch((error) => toast('error', error.message))
+                          }}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-container text-on-primary-container"
+                        >
+                          <span className="material-symbols-outlined text-[18px]">edit</span>
+                        </button>
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-label-sm font-semibold text-[#15803D]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]" />
+                          Active
+                        </span>
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center justify-between border-t border-outline-variant/20 pt-2 text-label-sm font-medium text-on-surface-variant">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px] text-primary">bolt</span>
+                        {station.capacityKw} kW
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[14px] text-primary">grid_view</span>
+                        {station.batteryStorageSlots} slots
+                      </span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+        </div>
+
+        <div className="flex w-full flex-col gap-8">
+          {selectedId && showEdit && (
+              <div className="flex flex-col gap-6 rounded-2xl bg-surface-container-lowest p-6 shadow-sm">
+                <div className="flex items-start justify-between gap-3 border-b border-outline-variant/20 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-container/30 text-primary">
+                      <span className="material-symbols-outlined text-[22px]">edit</span>
+                    </div>
+                    <div>
+                      <h2 className="font-headline-md text-headline-md font-semibold">Edit station</h2>
+                      <p className="text-secondary">Update station details or deactivate it.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close edit"
+                    onClick={() => setShowEdit(false)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-secondary hover:bg-surface-container"
+                  >
+                    <span className="material-symbols-outlined text-[20px]">close</span>
+                  </button>
+                </div>
+                <form className="flex flex-col gap-5" onSubmit={handleUpdate}>
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <label className="flex flex-col gap-1.5 md:col-span-2">
+                      <span className="text-label-md font-semibold">Station name</span>
+                      <input className={fieldClass()} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
+                    </label>
+                    <label className="flex flex-col gap-1.5 md:col-span-2">
+                      <span className="text-label-md font-semibold">Address</span>
+                      <input className={fieldClass()} value={editForm.address} onChange={(event) => setEditForm({ ...editForm, address: event.target.value })} />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-label-md font-semibold">Latitude</span>
+                      <input className={fieldClass()} type="number" step="any" value={editForm.latitude} onChange={(event) => setEditForm({ ...editForm, latitude: event.target.value })} />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-label-md font-semibold">Longitude</span>
+                      <input className={fieldClass()} type="number" step="any" value={editForm.longitude} onChange={(event) => setEditForm({ ...editForm, longitude: event.target.value })} />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-label-md font-semibold">Capacity (kW)</span>
+                      <input className={fieldClass()} type="number" step="any" value={editForm.capacityKw} onChange={(event) => setEditForm({ ...editForm, capacityKw: event.target.value })} />
+                    </label>
+                    <label className="flex flex-col gap-1.5">
+                      <span className="text-label-md font-semibold">Battery slots</span>
+                      <input className={fieldClass()} type="number" value={editForm.batteryStorageSlots} onChange={(event) => setEditForm({ ...editForm, batteryStorageSlots: event.target.value })} />
+                    </label>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/20 pt-4">
+                    <button
+                      type="button"
+                      disabled={loading}
+                      onClick={() => setConfirmOpen(true)}
+                      className="flex h-11 items-center gap-2 rounded-lg bg-[#FEE2E2] px-5 text-label-md font-semibold text-[#B91C1C]"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
+                      Deactivate station
+                    </button>
+                    <button type="submit" disabled={loading} className="flex h-11 items-center gap-2 rounded-lg bg-primary-container px-6 text-label-md font-semibold text-on-primary-container">
+                      <span className="material-symbols-outlined text-[18px]">save</span>
+                      Save changes
+                    </button>
+                  </div>
+                </form>
+              </div>
+          )}
+        </div>
+      </div>
+
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-on-surface/40 p-4 backdrop-blur-sm">
+          <div className="flex w-full max-w-md flex-col gap-5 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-6 shadow-xl">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#FEE2E2] text-[#B91C1C]">
+              <span className="material-symbols-outlined text-[26px]">warning</span>
+            </div>
+            <div className="flex flex-col gap-2">
+              <h3 className="font-headline-md text-headline-md font-semibold">
+                Deactivate {editForm.name}?
+              </h3>
+              <p className="text-secondary">
+                The station is deactivated only when it has no reserved bookings. If reservations exist, the request is rejected.
+              </p>
+            </div>
+            <div className="flex justify-end gap-3">
+              <button type="button" className="h-11 rounded-lg bg-surface-container px-5" onClick={() => setConfirmOpen(false)}>
+                Keep station
+              </button>
+              <button type="button" className="flex h-11 items-center gap-2 rounded-lg bg-[#B91C1C] px-6 font-semibold text-white" onClick={confirmDeactivate}>
+                <span className="material-symbols-outlined text-[18px]">power_off</span>
+                Deactivate
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
