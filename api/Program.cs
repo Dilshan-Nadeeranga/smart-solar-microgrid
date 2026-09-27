@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using MongoDB.Driver;
 using SolarGrid.Api.Data;
 using SolarGrid.Api.Repositories;
 using SolarGrid.Api.Services;
@@ -28,13 +29,18 @@ var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
 // Register MongoDB
 builder.Services.AddSingleton(mongoSettings);
 builder.Services.AddSingleton<MongoDbContext>();
+builder.Services.AddSingleton<IMongoDatabase>(sp =>
+    sp.GetRequiredService<MongoDbContext>().Database);
 
 // Register repositories
 builder.Services.AddSingleton<UserRepository>();
+builder.Services.AddSingleton<ReservationRepository>();
 
 // Register services
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<JwtService>();
+builder.Services.AddSingleton<StationService>();
+builder.Services.AddSingleton<ReservationService>();
 
 // Configure JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
