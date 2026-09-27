@@ -1,130 +1,101 @@
-import { useEffect } from 'react'
-import ReservationsModule from './features/reservations/ReservationsModule.jsx'
-import { navigate, paths, useRoute } from './features/reservations/router.js'
-import './App.css'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
-const NAV_ITEMS = [
-  { label: 'Accounts', owner: 'Member 1' },
-  { label: 'Stations', owner: 'Member 2' },
-  { label: 'Reservations', owner: 'Member 3', active: true },
-  { label: 'Monitoring', owner: 'Member 4' },
+const links = [
+  { to: '/dashboard', label: 'Dashboard', end: true },
+  { to: '/dashboard/stations', label: 'Stations', end: false },
+  { to: '/dashboard/weekly-schedule', label: 'Schedule', end: true },
+  { to: '/dashboard/slot-lookup', label: 'Slot lookup', end: true },
+  { to: '/reservations', label: 'Reservations', end: false },
 ]
 
-function PortalHome() {
-  return (
-    <section className="portal-home">
-      <span className="portal-home__tag">Staff portal</span>
-      <h1>Smart Solar Microgrid</h1>
-      <p>Accounts, stations, reservations and monitoring for the campus solar grid.</p>
-      <a
-        className="portal-home__card"
-        href={paths.home()}
-        onClick={(event) => {
-          event.preventDefault()
-          navigate(paths.home())
-        }}
-      >
-        <span className="portal-home__card-icon material-symbols-outlined" aria-hidden="true">
-          event_available
-        </span>
-        <span className="portal-home__card-copy">
-          <strong>Reservations</strong>
-          <span>Book, change and cancel energy slots</span>
-        </span>
-        <span className="material-symbols-outlined" aria-hidden="true">
-          arrow_forward
-        </span>
-      </a>
-    </section>
-  )
+const crumbs = {
+  '/dashboard': 'Dashboard',
+  '/dashboard/stations': 'Stations',
+  '/dashboard/stations/create': 'Create station',
+  '/dashboard/weekly-schedule': 'Schedule',
+  '/dashboard/slot-lookup': 'Slot lookup',
 }
 
-function App() {
-  const route = useRoute()
-  const onReservations = route.name !== 'outside'
+function navClass(isActive) {
+  return isActive
+    ? 'flex items-center px-4 py-2.5 bg-surface-container text-on-surface font-semibold border-l-[3px] border-primary-container pl-[13px]'
+    : 'flex items-center px-4 py-2.5 text-secondary hover:bg-surface-container-low hover:text-on-surface border-l-[3px] border-transparent'
+}
 
-  useEffect(() => {
-    if (!onReservations) document.title = 'Smart Solar Microgrid'
-  }, [onReservations])
+export default function App() {
+  const { pathname } = useLocation()
 
   return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div className="app-header__inner">
-          <a
-            className="app-brand"
-            href="/"
-            onClick={(event) => {
-              event.preventDefault()
-              navigate('/')
-            }}
-          >
-            <span className="app-brand__mark">
-              <span className="material-symbols-outlined" aria-hidden="true">
-                wb_sunny
+    <div className="min-h-screen bg-surface font-body-sm text-body-sm text-on-surface antialiased">
+      <aside className="fixed left-0 top-0 hidden h-full w-60 flex-col justify-between border-r border-outline-variant/30 bg-surface-container-lowest py-6 lg:flex">
+        <div className="flex flex-col gap-6">
+          <div className="flex items-start gap-3 px-6">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-container shadow-sm">
+              <span className="material-symbols-outlined text-[20px] text-on-primary-container">sunny</span>
+            </div>
+            <div className="flex min-w-0 flex-col">
+              <span className="mb-1 text-[10px] font-semibold uppercase leading-none tracking-wider text-secondary">
+                Smart Solar Microgrid
               </span>
-            </span>
-            <span className="app-brand__text">
-              <strong>Smart Solar Microgrid</strong>
-              <span>Staff portal</span>
-            </span>
-          </a>
-
-          <nav className="app-nav" aria-label="Main">
-            {NAV_ITEMS.map((item) =>
-              item.active ? (
-                <a
-                  key={item.label}
-                  href={paths.home()}
-                  className={`app-nav__link${onReservations ? ' is-active' : ''}`}
-                  aria-current={onReservations ? 'page' : undefined}
-                  onClick={(event) => {
-                    event.preventDefault()
-                    navigate(paths.home())
-                  }}
-                >
-                  {item.label}
-                </a>
-              ) : (
-                <span
-                  key={item.label}
-                  className="app-nav__link is-disabled"
-                  title={`${item.label} is built by ${item.owner}`}
-                >
-                  {item.label}
-                </span>
-              ),
-            )}
-          </nav>
-
-          <div className="app-header__end">
-            <span className="app-mode">
-              <span className="app-mode__dot" aria-hidden="true" />
-              Mock data mode
-            </span>
-            <div className="app-user">
-              <span className="app-user__text">
-                <strong>Staff user</strong>
-                <span>Grid Operator</span>
-              </span>
-              <span className="app-user__avatar">GO</span>
+              <span className="truncate text-xl font-bold leading-tight text-on-surface">BackOfficer</span>
+              <span className="text-[11px] font-medium text-secondary">Station Management</span>
             </div>
           </div>
+          <nav className="mt-4 flex flex-col gap-1">
+            {links.map((link) => (
+              <NavLink key={link.to} to={link.to} end={link.end} className={({ isActive }) => navClass(isActive)}>
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
-      </header>
-
-      <main className="app-main">
-        {onReservations ? <ReservationsModule /> : <PortalHome />}
-      </main>
-
-      <footer className="app-footer">
-        <div className="app-footer__inner">
-          <span>© 2026 Smart Solar Microgrid</span>
-          <span>{onReservations ? 'Reservation management · Member 3' : 'Staff portal'}</span>
+        <div className="border-t border-outline-variant/20 px-6 pt-4">
+          <div className="flex items-center gap-2">
+            <span className="inline-block h-2 w-2 rounded-full bg-primary-container" />
+            <span className="text-label-sm text-secondary">Station desk</span>
+          </div>
         </div>
-      </footer>
+      </aside>
+
+      <div className="flex min-h-screen flex-col bg-surface lg:pl-60">
+        <header className="fixed top-0 right-0 left-0 z-40 flex h-14 items-center justify-between border-b border-outline-variant/20 bg-surface-container-lowest/80 px-4 backdrop-blur-md lg:left-60 lg:px-8">
+          <div className="flex items-center gap-3">
+            <span className="hidden text-label-sm uppercase tracking-wider text-secondary sm:inline">
+              Infrastructure Module
+            </span>
+            <span className="hidden text-outline-variant sm:inline">/</span>
+            <span className="text-label-md font-semibold text-on-surface">
+              {pathname.startsWith('/reservations') ? 'Reservations' : crumbs[pathname] || 'BackOfficer Desk'}
+            </span>
+          </div>
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary">
+            <span className="material-symbols-outlined text-[18px] text-on-primary">person</span>
+          </div>
+        </header>
+
+        <nav className="fixed top-14 right-0 left-0 z-30 flex gap-1 overflow-x-auto border-b border-outline-variant/20 bg-surface-container-lowest px-3 py-2 lg:hidden">
+          {links.map((link) => (
+            <NavLink
+              key={link.to}
+              to={link.to}
+              end={link.end}
+              className={({ isActive }) =>
+                isActive
+                  ? 'shrink-0 rounded-lg bg-surface-container px-3 py-1.5 text-label-md font-semibold text-on-surface'
+                  : 'shrink-0 rounded-lg px-3 py-1.5 text-label-md text-secondary'
+              }
+            >
+              {link.label}
+            </NavLink>
+          ))}
+        </nav>
+
+        <main className="w-full flex-1 pt-28 lg:pt-14">
+          <div className="mx-auto w-full max-w-7xl p-4 sm:p-8 lg:p-10">
+            <Outlet />
+          </div>
+        </main>
+      </div>
     </div>
   )
 }
-
-export default App
