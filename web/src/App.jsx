@@ -23,7 +23,10 @@ const getLinks = (role) => {
   if (role === 'GRID_OPERATOR') {
     return [
       { to: '/dashboard/stations', label: 'Stations', end: true },
-      { to: '/reservations', label: 'Reservations', end: false },
+      { type: 'label', label: 'Reservations' },
+      { to: '/reservations/new', label: 'Create reservations', end: true, nested: true },
+      { to: '/reservations', label: 'All reservations', end: true, nested: true, match: 'all-reservations' },
+      { to: '/reservations/pending', label: 'Pending reservations', end: true, nested: true },
       { to: '/bookings', label: 'Bookings', end: false },
       { to: '/profile', label: 'My Profile', end: true },
     ]
@@ -52,10 +55,41 @@ const crumbs = {
   '/profile': 'My Profile',
 }
 
-function navClass(isActive) {
+function isReservationNavActive(link, pathname, routerIsActive) {
+  if (link.match === 'all-reservations') {
+    if (pathname === '/reservations') return true
+    if (!pathname.startsWith('/reservations/')) return false
+    const rest = pathname.slice('/reservations/'.length)
+    return rest !== 'new' && !rest.startsWith('new/') && rest !== 'pending' && !rest.startsWith('pending/')
+  }
+  if (link.to === '/reservations/new') {
+    return pathname === '/reservations/new' || pathname.startsWith('/reservations/new/')
+  }
+  if (link.to === '/reservations/pending') {
+    return pathname === '/reservations/pending' || pathname.startsWith('/reservations/pending/')
+  }
+  return routerIsActive
+}
+
+function reservationCrumb(pathname) {
+  if (pathname === '/reservations/new' || pathname.startsWith('/reservations/new/')) return 'Create reservations'
+  if (pathname === '/reservations/pending' || pathname.startsWith('/reservations/pending/')) return 'Pending reservations'
+  if (pathname === '/reservations' || pathname.startsWith('/reservations/')) return 'All reservations'
+  return null
+}
+
+function navClass(isActive, nested) {
+  const inset = nested
+    ? isActive
+      ? 'pl-[29px] pr-4'
+      : 'pl-8 pr-4'
+    : isActive
+      ? 'pl-[13px] pr-4'
+      : 'px-4'
+
   return isActive
-    ? 'flex items-center px-4 py-2.5 bg-surface-container text-on-surface font-semibold border-l-[3px] border-primary-container pl-[13px]'
-    : 'flex items-center px-4 py-2.5 text-secondary hover:bg-surface-container-low hover:text-on-surface border-l-[3px] border-transparent'
+    ? `flex items-center ${inset} py-2.5 bg-surface-container text-on-surface font-semibold border-l-[3px] border-primary-container`
+    : `flex items-center ${inset} py-2.5 text-secondary hover:bg-surface-container-low hover:text-on-surface border-l-[3px] border-transparent`
 }
 
 export default function App() {
@@ -92,11 +126,25 @@ export default function App() {
             </div>
           </Link>
           <nav className="mt-4 flex flex-col gap-1">
-            {links.map((link) => (
-              <NavLink key={link.to} to={link.to} end={link.end} className={({ isActive }) => navClass(isActive)}>
-                {link.label}
-              </NavLink>
-            ))}
+            {links.map((link) =>
+              link.type === 'label' ? (
+                <span
+                  key={link.label}
+                  className="px-4 pt-4 pb-1 text-[11px] font-semibold uppercase tracking-wider text-secondary"
+                >
+                  {link.label}
+                </span>
+              ) : (
+                <NavLink
+                  key={link.to}
+                  to={link.to}
+                  end={link.end}
+                  className={({ isActive }) => navClass(isReservationNavActive(link, pathname, isActive), link.nested)}
+                >
+                  {link.label}
+                </NavLink>
+              ),
+            )}
           </nav>
         </div>
         <div className="border-t border-outline-variant/20 px-6 pt-4 flex flex-col gap-3">
@@ -127,11 +175,8 @@ export default function App() {
             </span>
             <span className="hidden text-outline-variant sm:inline">/</span>
             <span className="text-label-md font-semibold text-on-surface">
-              {pathname.startsWith('/reservations')
-                ? 'Reservations'
-                : pathname.startsWith('/bookings')
-                  ? 'Bookings'
-                  : crumbs[pathname] || 'Dashboard'}
+              {reservationCrumb(pathname) ||
+                (pathname.startsWith('/bookings') ? 'Bookings' : crumbs[pathname] || 'Dashboard')}
             </span>
           </div>
           <div className="flex items-center gap-4">
@@ -153,20 +198,22 @@ export default function App() {
         </header>
 
         <nav className="fixed top-14 right-0 left-0 z-30 flex gap-1 overflow-x-auto border-b border-outline-variant/20 bg-surface-container-lowest px-3 py-2 lg:hidden">
-          {links.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              end={link.end}
-              className={({ isActive }) =>
-                isActive
-                  ? 'shrink-0 rounded-lg bg-surface-container px-3 py-1.5 text-label-md font-semibold text-on-surface'
-                  : 'shrink-0 rounded-lg px-3 py-1.5 text-label-md text-secondary'
-              }
-            >
-              {link.label}
-            </NavLink>
-          ))}
+          {links.map((link) =>
+            link.type === 'label' ? null : (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) =>
+                  isReservationNavActive(link, pathname, isActive)
+                    ? 'shrink-0 rounded-lg bg-surface-container px-3 py-1.5 text-label-md font-semibold text-on-surface'
+                    : 'shrink-0 rounded-lg px-3 py-1.5 text-label-md text-secondary'
+                }
+              >
+                {link.label}
+              </NavLink>
+            ),
+          )}
         </nav>
 
         <main className="w-full flex-1 pt-28 lg:pt-14">
