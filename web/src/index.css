@@ -73,4 +73,153 @@ body {
   font-family: "Plus Jakarta Sans", Inter, sans-serif;
 }
 
+.home-live {
+  box-shadow: 0 0 0 0 rgb(20 184 166 / 0.45);
+  animation: home-live 1.8s ease-out infinite;
+}
+
+.home-soc-bar {
+  width: 88.4%;
+  animation: home-soc 1.1s ease both;
+}
+
+.home-step {
+  animation: home-rise 0.7s ease backwards;
+  transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
+}
+
+.home-step:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.home-step:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.home-step:nth-child(4) {
+  animation-delay: 0.24s;
+}
+
+.home-step__icon,
+.home-step__num {
+  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.28s ease, transform 0.28s ease;
+}
+
+.home-step:hover {
+  transform: translateY(-8px);
+  border-color: #facc15;
+  box-shadow: 0 18px 36px -16px rgb(250 204 21 / 0.9);
+}
+
+.home-step:hover .home-step__icon {
+  transform: scale(1.06);
+  border-color: #facc15;
+  background: #facc15;
+}
+
+.home-step:hover .home-step__num {
+  color: #735c00;
+}
+
+.home-role {
+  transition: transform 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease;
+}
+
+.home-role__icon {
+  transition: background-color 0.28s ease, border-color 0.28s ease, color 0.28s ease, transform 0.28s ease;
+}
+
+.home-role:hover {
+  transform: translateY(-8px);
+}
+
+.home-role--yellow:hover {
+  border-color: #facc15;
+  box-shadow: 0 18px 36px -16px rgb(250 204 21 / 0.9);
+}
+
+.home-role--yellow:hover .home-role__icon {
+  transform: scale(1.06);
+  border-color: #facc15;
+  background: #facc15;
+  color: #0b1c30;
+}
+
+.home-role--blue:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 18px 36px -16px rgb(59 130 246 / 0.55);
+}
+
+.home-role--blue:hover .home-role__icon {
+  transform: scale(1.06);
+  border-color: #3b82f6;
+  background: #3b82f6;
+  color: #fff;
+}
+
+.home-role--green:hover {
+  border-color: #22c55e;
+  box-shadow: 0 18px 36px -16px rgb(34 197 94 / 0.55);
+}
+
+.home-role--green:hover .home-role__icon {
+  transform: scale(1.06);
+  border-color: #22c55e;
+  background: #22c55e;
+  color: #fff;
+}
+
+.home-feature {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.home-feature:hover {
+  border-color: #facc15;
+  box-shadow: 0 14px 30px -22px rgb(250 204 21 / 0.95);
+}
+
+.home-telemetry {
+  animation: home-rise 0.8s ease both;
+}
+
+@keyframes home-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes home-live {
+  70% {
+    box-shadow: 0 0 0 8px rgb(20 184 166 / 0);
+  }
+}
+
+@keyframes home-soc {
+  from {
+    width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-live,
+  .home-soc-bar,
+  .home-step,
+  .home-telemetry {
+    animation: none;
+  }
+
+  .home-step:hover,
+  .home-step:hover .home-step__icon,
+  .home-role:hover,
+  .home-role:hover .home-role__icon {
+    transform: none;
+  }
+}
+
 @source "./**/*.{jsx,js}";
