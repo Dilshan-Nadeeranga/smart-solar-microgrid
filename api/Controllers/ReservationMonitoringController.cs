@@ -38,6 +38,14 @@ public class ReservationMonitoringController : ControllerBase
         Run(() => _monitoringService.GetMineAsync(User, query));
 
     /// <summary>
+    /// GET /api/reservations/desk — booking list for the web desk.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("desk")]
+    public Task<IActionResult> ListForDesk([FromQuery] ReservationListQuery query) =>
+        Run(() => _monitoringService.GetAllAsync(DeskActor.Create(), query));
+
+    /// <summary>
     /// GET /api/reservations — all reservations for staff, with filters and paging.
     /// </summary>
     [HttpGet]

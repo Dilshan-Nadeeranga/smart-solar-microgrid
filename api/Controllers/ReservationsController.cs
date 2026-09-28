@@ -17,6 +17,31 @@ public class ReservationsController : ControllerBase
     }
 
     /// <summary>
+    /// POST /api/reservations/desk — booking from the web desk, which has no login yet.
+    /// Uses the same rules as a Backoffice user creating a reservation for a prosumer.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPost("desk")]
+    public async Task<IActionResult> CreateFromDesk([FromBody] ReservationWriteModel? body)
+    {
+        try
+        {
+            var summary = await _reservationService.CreateFromDeskAsync(
+                body?.SlotId ?? string.Empty,
+                body?.StationId,
+                body?.ProsumerId);
+
+            var id = summary.GetType().GetProperty("reservationId")?.GetValue(summary)?.ToString();
+
+            return CreatedAtAction(nameof(GetById), new { id }, summary);
+        }
+        catch (ReservationException ex)
+        {
+            return Map(ex);
+        }
+    }
+
+    /// <summary>
     /// POST /api/reservations — create a booking.
     /// Only SlotId, optional StationId, and optional ProsumerId (staff) are used.
     /// </summary>
@@ -34,6 +59,65 @@ public class ReservationsController : ControllerBase
             var id = summary.GetType().GetProperty("reservationId")?.GetValue(summary)?.ToString();
 
             return CreatedAtAction(nameof(GetById), new { id }, summary);
+        }
+        catch (ReservationException ex)
+        {
+            return Map(ex);
+        }
+    }
+
+    /// <summary>
+    /// GET /api/reservations/desk/{id} — booking details for the web desk.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpGet("desk/{id}")]
+    public async Task<IActionResult> GetFromDesk(string id)
+    {
+        try
+        {
+            return Ok(await _reservationService.GetByIdAsync(id, DeskActor.Create()));
+        }
+        catch (ReservationException ex)
+        {
+            return Map(ex);
+        }
+    }
+
+    /// <summary>
+    /// PUT /api/reservations/desk/{id} — change a booking from the web desk.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPut("desk/{id}")]
+    public async Task<IActionResult> UpdateFromDesk(string id, [FromBody] ReservationWriteModel? body)
+    {
+        try
+        {
+            var summary = await _reservationService.UpdateAsync(
+                id,
+                DeskActor.Create(),
+                body?.SlotId ?? string.Empty,
+                body?.StationId,
+                body?.Version);
+
+            return Ok(summary);
+        }
+        catch (ReservationException ex)
+        {
+            return Map(ex);
+        }
+    }
+
+    /// <summary>
+    /// PATCH /api/reservations/desk/{id}/cancel — cancel a booking from the web desk.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPatch("desk/{id}/cancel")]
+    public async Task<IActionResult> CancelFromDesk(string id, [FromBody] ReservationWriteModel? body)
+    {
+        try
+        {
+            var summary = await _reservationService.CancelAsync(id, DeskActor.Create(), body?.Version);
+            return Ok(summary);
         }
         catch (ReservationException ex)
         {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { formatDateTime, formatDuration, formatLongDate, formatTimeRange } from '../format';
 import { useNow, useReservation } from '../hooks';
-import { cancelReservation } from '../mockReservationApi';
+import { reservationsApi } from '../../../api.js';
 import { modificationWindow } from '../reservationRules';
 import {
   DetailList,
@@ -28,7 +28,7 @@ function CancelDialog({ reservation, stationName, onKeep, onConfirmed }) {
     setError(null);
 
     try {
-      const summary = await cancelReservation(reservation.id, { version: reservation.version });
+      const summary = await reservationsApi.cancel(reservation.id, { version: reservation.version });
       onConfirmed(summary);
     } catch (err) {
       setError(err);

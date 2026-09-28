@@ -26,7 +26,15 @@ function slotTag(entry, remaining) {
   return { label: `${hours} hr window`, tone: 'neutral', icon: null };
 }
 
-export default function SlotPicker({ station, slots, selectedSlotId, onSelect, currentSlotId }) {
+function weekdayName(date) {
+  return date.toLocaleDateString('en-US', { weekday: 'long' });
+}
+
+function scheduleFor(schedules, day) {
+  return schedules.find((item) => item.day === weekdayName(day)) ?? null;
+}
+
+export default function SlotPicker({ station, slots, schedules = [], selectedSlotId, onSelect, currentSlotId }) {
   const now = useNow();
   const [chosenDay, setChosenDay] = useState(null);
 
@@ -69,9 +77,11 @@ export default function SlotPicker({ station, slots, selectedSlotId, onSelect, c
             const dayEntries = slotsByDay.get(key) ?? [];
             const openCount = dayEntries.filter((entry) => entry.selectable).length;
             const label = dayChipLabel(day, index);
+            const closed = scheduleFor(schedules, day)?.isAvailable === false;
 
             let countLabel = `${openCount} open`;
-            if (dayEntries.length === 0) countLabel = 'No slots';
+            if (closed && dayEntries.length === 0) countLabel = 'Closed';
+            else if (dayEntries.length === 0) countLabel = 'No slots';
             else if (openCount === 0) countLabel = 'None open';
 
             return (
@@ -104,7 +114,11 @@ export default function SlotPicker({ station, slots, selectedSlotId, onSelect, c
         </div>
 
         {entries.length === 0 ? (
-          <p className="rm-empty">No energy slots scheduled for this day.</p>
+          <p className="rm-empty">
+            {days.some((day) => dayKey(day) === activeDay && scheduleFor(schedules, day)?.isAvailable === false)
+              ? 'This station is closed on this day.'
+              : 'No energy slots scheduled for this day.'}
+          </p>
         ) : (
           <div className="rm-slot-list" role="radiogroup" aria-label="Energy slot">
             {entries.map((entry) => {

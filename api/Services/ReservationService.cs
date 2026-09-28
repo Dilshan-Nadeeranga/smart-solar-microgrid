@@ -28,6 +28,14 @@ public class ReservationService
         return BuildSummary(reservation, slot, "Reservation details retrieved.");
     }
 
+    public Task<object> CreateFromDeskAsync(
+        string slotId,
+        string? stationId,
+        string? prosumerId)
+    {
+        return CreateAsync(DeskActor.Create(), slotId, stationId, prosumerId);
+    }
+
     public async Task<object> CreateAsync(
         ClaimsPrincipal actor,
         string slotId,
@@ -468,9 +476,11 @@ public class ReservationService
         EnergyBookingSlot slot,
         IClientSessionHandle? session = null)
     {
+        var startLocal = ToSriLanka(slot.StartTimeUtc);
+        var endLocal = ToSriLanka(slot.EndTimeUtc);
         var schedule = await _reservations.GetScheduleForDayAsync(
             stationId,
-            slot.StartTimeUtc.DayOfWeek,
+            startLocal.DayOfWeek,
             session);
 
         // If Member 2 has not configured a schedule for that day, allow the slot.
@@ -486,8 +496,8 @@ public class ReservationService
                 "The station is not available on the selected day.");
         }
 
-        var start = slot.StartTimeUtc.TimeOfDay;
-        var end = slot.EndTimeUtc.TimeOfDay;
+        var start = startLocal.TimeOfDay;
+        var end = endLocal.TimeOfDay;
 
         if (start < schedule.OpeningTime || end > schedule.ClosingTime)
         {
@@ -558,6 +568,40 @@ public class ReservationService
                     "This booking overlaps an existing active reservation.");
             }
         }
+    }
+
+    private static readonly TimeZoneInfo SriLankaZone = ResolveSriLankaZone();
+
+    private static TimeZoneInfo ResolveSriLankaZone()
+    {
+        foreach (var id in new[] { "Asia/Colombo", "Sri Lanka Standard Time" })
+        {
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(id);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+            }
+            catch (InvalidTimeZoneException)
+            {
+            }
+        }
+
+        return TimeZoneInfo.CreateCustomTimeZone(
+            "Asia/Colombo",
+            TimeSpan.FromMinutes(330),
+            "Sri Lanka",
+            "Sri Lanka");
+    }
+
+    private static DateTime ToSriLanka(DateTime value)
+    {
+        var utc = value.Kind == DateTimeKind.Utc
+            ? value
+            : DateTime.SpecifyKind(value, DateTimeKind.Utc);
+
+        return TimeZoneInfo.ConvertTimeFromUtc(utc, SriLankaZone);
     }
 
     private static object BuildSummary(

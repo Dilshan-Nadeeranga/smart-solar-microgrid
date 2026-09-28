@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { formatDateTime, formatLongDate, formatMonth, formatTimeRange } from '../format';
 import { useNow, useReservation, useStationSlots } from '../hooks';
-import { updateReservation } from '../mockReservationApi';
+import { reservationsApi } from '../../../api.js';
+import { ensureStoredSlot } from '../storedSlot';
 import { modificationWindow } from '../reservationRules';
 import SlotPicker from './SlotPicker';
 import StationPicker from './StationPicker';
@@ -31,7 +32,7 @@ export default function EditBooking({ reservationId, refData, onBack, onUpdated 
 
   const reservation = summary?.reservation;
   const stationId = chosenStationId ?? reservation?.stationId ?? '';
-  const { slots, loading: slotsLoading } = useStationSlots(stationId, slotRefresh);
+  const { slots, schedules, loading: slotsLoading, error: slotsError } = useStationSlots(stationId, slotRefresh);
 
   if (loading || loadError) {
     return (
@@ -62,8 +63,9 @@ export default function EditBooking({ reservationId, refData, onBack, onUpdated 
     setError(null);
 
     try {
-      const result = await updateReservation(reservation.id, {
-        slotId,
+      const realSlotId = await ensureStoredSlot(stationId, newSlot);
+      const result = await reservationsApi.update(reservation.id, {
+        slotId: realSlotId,
         stationId,
         version: reservation.version,
       });
@@ -146,11 +148,14 @@ export default function EditBooking({ reservationId, refData, onBack, onUpdated 
             />
             {slotsLoading ? (
               <Spinner label="Loading slots…" />
+            ) : slotsError ? (
+              <ErrorNotice error={slotsError} />
             ) : (
               <SlotPicker
                 key={stationId}
                 station={station}
                 slots={slots}
+                schedules={schedules}
                 selectedSlotId={slotId}
                 currentSlotId={reservation.slotId}
                 onSelect={(item) => {
