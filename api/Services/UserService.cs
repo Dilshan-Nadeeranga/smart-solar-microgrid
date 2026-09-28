@@ -58,6 +58,45 @@ public class UserService
         return (true, "User created successfully.", user);
     }
 
+    
+    public async Task<(bool Success, string Message, User? User)> RegisterProsumerAsync(
+    User user,
+    string password)
+{
+    // Check whether the NIC is already registered.
+    var existingUser = await _userRepository.GetByNICAsync(user.NIC);
+
+    if (existingUser != null)
+    {
+        return (false, "A user with this NIC already exists.", null);
+    }
+
+    // Check that a password was provided.
+    if (string.IsNullOrWhiteSpace(password))
+    {
+        return (false, "Password is required.", null);
+    }
+
+    // Set the account as a Prosumer waiting for Backoffice activation.
+    user.Role = Role.PROSUMER;
+    user.AccountStatus = AccountStatus.PENDING;
+
+    // Hash the password before saving it.
+    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+
+    // Set account timestamps.
+    user.CreatedDate = DateTime.UtcNow;
+    user.UpdatedDate = DateTime.UtcNow;
+
+    // Save the Prosumer account to MongoDB.
+    await _userRepository.CreateAsync(user);
+
+    // Do not expose the password hash in the response.
+    user.PasswordHash = string.Empty;
+
+    return (true, "Prosumer registration submitted successfully. Your account is waiting for activation.", user);
+}
+
     public async Task<(bool Success, string Message, User? User)> CreateStaffAsync(
     User user,
     string password)
@@ -116,6 +155,70 @@ public class UserService
         return (true, "User updated successfully.");
     }
 
+    public async Task<(bool Success, string Message, User? User)> UpdateProfileAsync(string nic, UpdateProfileRequest request)
+    {
+        var existingUser = await _userRepository.GetByNICAsync(nic);
+
+        if (existingUser == null)
+        {
+            return (false, "User not found.", null);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Name))
+        {
+            existingUser.Name = request.Name.Trim();
+        }
+        if (!string.IsNullOrWhiteSpace(request.Email))
+        {
+            existingUser.Email = request.Email.Trim();
+        }
+        
+        if (request.Phone != null)
+        {
+            existingUser.Phone = request.Phone.Trim();
+        }
+        
+        if (request.Address != null)
+        {
+            existingUser.Address = request.Address.Trim();
+        }
+
+        existingUser.UpdatedDate = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(existingUser);
+
+        existingUser.PasswordHash = string.Empty;
+
+        return (true, "Profile updated successfully.", existingUser);
+    }
+
+    public async Task<(bool Success, string Message)> RequestDeactivationAsync(string nic)
+    {
+        var user = await _userRepository.GetByNICAsync(nic);
+
+        if (user == null)
+        {
+            return (false, "User not found.");
+        }
+
+        if (user.AccountStatus == AccountStatus.DEACTIVATED)
+        {
+            return (false, "Account is already deactivated.");
+        }
+
+        if (user.AccountStatus == AccountStatus.PENDING)
+        {
+            return (false, "Account is pending activation.");
+        }
+
+        user.AccountStatus = AccountStatus.DEACTIVATED;
+        user.UpdatedDate = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user);
+
+        return (true, "Account deactivated successfully.");
+    }
+
     public async Task<(bool Success, string Message)> DeactivateUserAsync(string nic)
     {
         var user = await _userRepository.GetByNICAsync(nic);
@@ -144,6 +247,11 @@ public class UserService
     if (user == null)
     {
         return (false, "User not found.");
+    }
+
+    if (user.AccountStatus != AccountStatus.DEACTIVATED)
+    {
+        return (false, "Only deactivated accounts can be reactivated.");
     }
 
     // Change the account status back to active.
