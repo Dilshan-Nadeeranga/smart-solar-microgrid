@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider } from './auth/AuthContext'
 import { BlockGridOperator, HomeRedirect, ProtectedRoute } from './auth/ProtectedRoute'
 import LoginPage from './auth/LoginPage'
@@ -17,6 +17,12 @@ import CreateStationPage from './features/stations/components/CreateStationPage.
 import DashboardPage from './features/stations/components/DashboardPage.jsx'
 import StationsPage from './features/stations/components/StationsPage.jsx'
 import WeeklySchedulePage from './features/stations/components/WeeklySchedulePage.jsx'
+import BookingsLayout from './features/bookings/BookingsLayout.jsx'
+import BookingsDashboardPage from './features/bookings/pages/BookingsDashboardPage.jsx'
+import PendingPage from './features/bookings/pages/PendingPage.jsx'
+import AllReservationsPage from './features/bookings/pages/AllReservationsPage.jsx'
+import HistoryPage from './features/bookings/pages/HistoryPage.jsx'
+import { BOOKINGS_ROLES } from './features/bookings/permissions.js'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
@@ -38,6 +44,17 @@ createRoot(document.getElementById('root')).render(
               </Route>
             </Route>
             <Route path="/reservations/*" element={<ReservationsModule />} />
+
+            {/* Member 4 - Booking monitoring (staff only; Grid Operators included) */}
+            <Route element={<ProtectedRoute roles={BOOKINGS_ROLES} />}>
+              <Route path="/bookings" element={<BookingsLayout />}>
+                <Route index element={<BookingsDashboardPage />} />
+                <Route path="pending" element={<PendingPage />} />
+                <Route path="all" element={<AllReservationsPage />} />
+                <Route path="history" element={<HistoryPage />} />
+                <Route path="*" element={<Navigate to="/bookings" replace />} />
+              </Route>
+            </Route>
 
             <Route element={<ProtectedRoute roles={['BACKOFFICE']} />}>
               <Route path="/dashboard/users">
