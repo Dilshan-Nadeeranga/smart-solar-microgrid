@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import ActionSummary from './components/ActionSummary';
 import CreateBooking from './components/CreateBooking';
 import EditBooking from './components/EditBooking';
@@ -6,7 +6,6 @@ import ReservationDetails from './components/ReservationDetails';
 import ReservationHome from './components/ReservationHome';
 import { Icon, PageHeader } from './components/ui';
 import { useReferenceData } from './hooks';
-import { resetDemoData } from './mockReservationApi';
 import { navigate, paths, useRoute } from './router';
 import './reservations.css';
 
@@ -24,7 +23,6 @@ const PAGE_TITLES = {
 export default function ReservationsModule() {
   const refData = useReferenceData();
   const route = useRoute();
-  const [demoKey, setDemoKey] = useState(0);
 
   const missingSummary = route.name === 'summary' && !route.summary;
 
@@ -43,25 +41,14 @@ export default function ReservationsModule() {
   const showSummary = (action) => (summary, previous = null) =>
     navigate(paths.summary(summary.reservationId, action), { state: { summary, previous } });
 
-  function handleResetDemo() {
-    resetDemoData();
-    setDemoKey((value) => value + 1);
-  }
-
   return (
     <div className="rm-module">
       {route.name === 'home' && (
-        <ReservationHome
-          refData={refData}
-          refreshKey={demoKey}
-          onCreate={goCreate}
-          onOpen={goDetails}
-          onResetDemo={handleResetDemo}
-        />
+        <ReservationHome refData={refData} onCreate={goCreate} onOpen={goDetails} />
       )}
 
       {route.name === 'create' && (
-        <CreateBooking refData={refData} onBack={goHome} onCreated={showSummary('created')} />
+        <CreateBooking onBack={goHome} onCreated={showSummary('created')} />
       )}
 
       {route.name === 'details' && (
