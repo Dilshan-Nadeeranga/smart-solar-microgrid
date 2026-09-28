@@ -1,5 +1,5 @@
-import { createContext, useContext } from 'react'
-import { stationsApi } from '../../api'
+import { createContext, useContext, useEffect, useState } from 'react'
+import { stationsApi, usersApi } from '../../api'
 import { bookingsApi } from './bookingsApi'
 import { useQuery } from './query'
 
@@ -29,6 +29,10 @@ export const queryKeys = {
   summary: () => `${BOOKINGS_KEY}summary`,
   list: (params) => `${BOOKINGS_KEY}list:${JSON.stringify(params)}`,
   detail: (id) => `${BOOKINGS_KEY}detail:${id}`,
+  // Review data sits under the same prefix so approve / reject refresh it too.
+  slot: (id) => `${BOOKINGS_KEY}slot:${id}`,
+  station: (id) => `${BOOKINGS_KEY}station:${id}`,
+  prosumer: (nic) => `${BOOKINGS_KEY}prosumer:${nic}`,
 }
 
 export function useSummary() {
@@ -44,4 +48,31 @@ export function useStations() {
     stations,
     nameById: new Map(stations.map((station) => [station.id, station.name])),
   }
+}
+
+/** Member 3 slot (capacity, times, active) for the review panel. */
+export function useSlot(slotId) {
+  return useQuery(queryKeys.slot(slotId), () => stationsApi.getSlot(slotId), { enabled: Boolean(slotId) })
+}
+
+/** Member 2 station details for the review panel. */
+export function useStation(stationId) {
+  return useQuery(queryKeys.station(stationId), () => stationsApi.get(stationId), { enabled: Boolean(stationId) })
+}
+
+/** Member 1 prosumer profile. The API allows Backoffice only, so other roles pass enabled = false. */
+export function useProsumer(nic, enabled) {
+  return useQuery(queryKeys.prosumer(nic), () => usersApi.getProfile(encodeURIComponent(nic)), {
+    enabled: Boolean(nic) && enabled,
+  })
+}
+
+/** Current time, updated every `intervalMs` (for "slot has not started" checks). */
+export function useNow(intervalMs = 30_000) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), intervalMs)
+    return () => clearInterval(timer)
+  }, [intervalMs])
+  return now
 }
