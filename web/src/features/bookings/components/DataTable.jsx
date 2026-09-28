@@ -8,8 +8,18 @@ import { Icon } from './ui'
  *   primary    — used as the card title
  *   hideOnCard — left out of the card body (e.g. shown in the title already)
  * onOpen(row, triggerElement) adds a "View" button per row; clicking the row opens it too.
+ * openAction(row) can return { text, emphasis } to relabel that button (e.g. "Review").
  */
-export default function DataTable({ caption, columns, rows, getRowKey = (row) => row.id, onOpen, openLabel, busy = false }) {
+export default function DataTable({
+  caption,
+  columns,
+  rows,
+  getRowKey = (row) => row.id,
+  onOpen,
+  openLabel,
+  openAction,
+  busy = false,
+}) {
   const primary = columns.find((column) => column.primary) ?? columns[0]
   const cardColumns = columns.filter((column) => column !== primary && !column.hideOnCard)
 
@@ -18,18 +28,25 @@ export default function DataTable({ caption, columns, rows, getRowKey = (row) =>
     onOpen(row, event.currentTarget.querySelector('[data-open-trigger]'))
   }
 
-  const viewButton = (row) => (
-    <button
-      type="button"
-      data-open-trigger
-      onClick={(event) => onOpen(row, event.currentTarget)}
-      aria-label={openLabel ? openLabel(row) : 'View details'}
-      className={`inline-flex min-h-8 items-center gap-1 rounded-lg px-2 py-1 text-xs font-semibold text-primary hover:bg-surface-container-low ${focusRing}`}
-    >
-      View
-      <Icon name="chevron_right" className="text-[18px]" />
-    </button>
-  )
+  const viewButton = (row) => {
+    const action = openAction?.(row) ?? { text: 'View', emphasis: false }
+    return (
+      <button
+        type="button"
+        data-open-trigger
+        onClick={(event) => onOpen(row, event.currentTarget)}
+        aria-label={openLabel ? openLabel(row) : `${action.text} details`}
+        className={`inline-flex min-h-8 shrink-0 items-center gap-1 whitespace-nowrap rounded-lg px-2 py-1 text-xs font-semibold ${focusRing} ${
+          action.emphasis
+            ? 'bg-primary pl-3 text-on-primary hover:bg-primary/90'
+            : 'text-primary hover:bg-surface-container-low'
+        }`}
+      >
+        {action.text}
+        <Icon name="chevron_right" className="text-[18px]" />
+      </button>
+    )
+  }
 
   return (
     <div aria-busy={busy || undefined} className={busy ? 'opacity-60 transition-opacity' : 'transition-opacity'}>

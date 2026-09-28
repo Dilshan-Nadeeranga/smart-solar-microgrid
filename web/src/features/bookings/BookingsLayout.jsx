@@ -170,7 +170,7 @@ export default function BookingsLayout() {
     <BookingsContext.Provider value={context}>
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
-          <p className="text-xs font-semibold uppercase tracking-wider text-secondary">Member 4 · Booking monitoring</p>
+          <p className="text-xs font-semibold uppercase tracking-wider text-secondary">Booking monitoring</p>
           <h1 className="text-2xl font-bold text-on-surface">Bookings</h1>
         </div>
 
