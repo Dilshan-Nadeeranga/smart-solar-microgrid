@@ -8,7 +8,6 @@ import SlotLookupPage from './features/stations/components/SlotLookupPage.jsx'
 import CreateStationPage from './features/stations/components/CreateStationPage.jsx'
 import DashboardPage from './features/stations/components/DashboardPage.jsx'
 import StationsPage from './features/stations/components/StationsPage.jsx'
-import WeeklySchedulePage from './features/stations/components/WeeklySchedulePage.jsx'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
@@ -21,7 +20,6 @@ createRoot(document.getElementById('root')).render(
             <Route index element={<DashboardPage />} />
             <Route path="stations/create" element={<CreateStationPage />} />
             <Route path="stations" element={<StationsPage />} />
-            <Route path="weekly-schedule" element={<WeeklySchedulePage />} />
             <Route path="slot-lookup" element={<SlotLookupPage />} />
           </Route>
           <Route path="/reservations/*" element={<ReservationsModule />} />

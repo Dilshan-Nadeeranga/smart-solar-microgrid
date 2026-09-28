@@ -10,16 +10,10 @@ const shortcuts = [
     text: 'View stations and update station details.',
   },
   {
-    to: '/dashboard/weekly-schedule',
-    icon: 'calendar_today',
-    title: 'Schedule',
-    text: 'Set opening and closing hours for a station.',
-  },
-  {
     to: '/dashboard/stations/create',
     icon: 'add',
     title: 'Create station',
-    text: 'Add a new solar station with capacity and battery slots.',
+    text: 'Add a new solar station with capacity, battery slots, and weekly hours.',
   },
   {
     to: '/dashboard/slot-lookup',
