@@ -1,0 +1,398 @@
+### Member 4 - Booking Monitoring and QR Verification test list
+#
+# Works with the VS Code REST Client and the Visual Studio / Rider .http runners.
+# Run top to bottom. Each block states the expected status.
+#
+# Setup:
+#   1. Put QR_SECRET_KEY (32+ characters) in the root .env and start the API.
+#   2. Have three ACTIVE users: a PROSUMER, a second PROSUMER, a GRID_OPERATOR,
+#      and a BACKOFFICE user. Fill in their NICs and passwords below.
+#   3. Have an active slot that starts 12+ hours from now and within 7 days
+#      (Member 2). Put its id in @slotId.
+#   4. Paste tokens from the login responses into the @...Token variables.
+#   5. Paste ids from responses into @reservationId, @reservation2Id, @qrPayload.
+
+@host = http://localhost:5257
+
+@prosumerNic = 200012345678
+@prosumerPassword = changeme
+@otherProsumerNic = 200087654321
+@otherProsumerPassword = changeme
+@operatorNic = 198812345678
+@operatorPassword = changeme
+@backofficeNic = 199912345678
+@backofficePassword = changeme
+
+@prosumerToken = paste-prosumer-token
+@otherProsumerToken = paste-other-prosumer-token
+@operatorToken = paste-operator-token
+@backofficeToken = paste-backoffice-token
+
+@slotId = paste-active-slot-id
+@stationId = paste-station-id-of-that-slot
+@reservationId = paste-reservation-id
+@reservation2Id = paste-second-reservation-id
+@qrPayload = paste-qr-payload
+@missingId = 000000000000000000000000
+
+############################################################
+# 0. Login and seed (Member 1 and Member 3 endpoints)
+############################################################
+
+### 0.1 Prosumer login -> 200, copy token into @prosumerToken
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "nic": "{{prosumerNic}}", "password": "{{prosumerPassword}}" }
+
+### 0.2 Other prosumer login -> 200, copy token into @otherProsumerToken
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "nic": "{{otherProsumerNic}}", "password": "{{otherProsumerPassword}}" }
+
+### 0.3 Grid Operator login -> 200, copy token into @operatorToken
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "nic": "{{operatorNic}}", "password": "{{operatorPassword}}" }
+
+### 0.4 Backoffice login -> 200, copy token into @backofficeToken
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "nic": "{{backofficeNic}}", "password": "{{backofficePassword}}" }
+
+### 0.5 Prosumer creates a reservation (Member 3) -> 201, copy reservationId into @reservationId
+POST {{host}}/api/reservations
+Authorization: Bearer {{prosumerToken}}
+Content-Type: application/json
+
+{ "slotId": "{{slotId}}" }
+
+### 0.6 Staff creates a second reservation for the other prosumer -> 201, copy into @reservation2Id
+# Used for the reject flow. Use another slot if the same prosumer rule blocks it.
+POST {{host}}/api/reservations
+Authorization: Bearer {{backofficeToken}}
+Content-Type: application/json
+
+{ "slotId": "{{slotId}}", "prosumerId": "{{otherProsumerNic}}" }
+
+############################################################
+# 1. Unauthenticated -> 401
+############################################################
+
+### 1.1 Summary without token -> 401
+GET {{host}}/api/reservations/summary
+
+### 1.2 My bookings without token -> 401
+GET {{host}}/api/reservations/mine
+
+### 1.3 Staff list without token -> 401
+GET {{host}}/api/reservations
+
+### 1.4 Approve without token -> 401
+PATCH {{host}}/api/reservations/{{reservationId}}/approve
+
+### 1.5 Verify QR without token -> 401
+POST {{host}}/api/reservations/verify-qr
+Content-Type: application/json
+
+{ "payload": "x.y" }
+
+### 1.6 Invalid token -> 401
+GET {{host}}/api/reservations/summary
+Authorization: Bearer not-a-real-token
+
+############################################################
+# 2. Dashboard
+############################################################
+
+### 2.1 Prosumer summary -> 200, scope "Own", pendingCount >= 1
+GET {{host}}/api/reservations/summary
+Authorization: Bearer {{prosumerToken}}
+
+### 2.2 Backoffice summary -> 200, scope "All"
+GET {{host}}/api/reservations/summary
+Authorization: Bearer {{backofficeToken}}
+
+### 2.3 Grid Operator summary -> 200, scope "All"
+GET {{host}}/api/reservations/summary
+Authorization: Bearer {{operatorToken}}
+
+############################################################
+# 3. Lists
+############################################################
+
+### 3.1 My bookings -> 200, only this prosumer's reservations
+GET {{host}}/api/reservations/mine
+Authorization: Bearer {{prosumerToken}}
+
+### 3.2 My pending bookings, paged -> 200
+GET {{host}}/api/reservations/mine?status=Pending&page=1&pageSize=5
+Authorization: Bearer {{prosumerToken}}
+
+### 3.3 My bookings search by station name text -> 200
+GET {{host}}/api/reservations/mine?q=solar
+Authorization: Bearer {{prosumerToken}}
+
+### 3.4 My bookings search by reference (reservation id) -> 200, one item
+GET {{host}}/api/reservations/mine?q={{reservationId}}
+Authorization: Bearer {{prosumerToken}}
+
+### 3.5 Other prosumer searching my reference -> 200 with zero items (never leaks)
+GET {{host}}/api/reservations/mine?q={{reservationId}}
+Authorization: Bearer {{otherProsumerToken}}
+
+### 3.6 My bookings on a slot date -> 200
+GET {{host}}/api/reservations/mine?dateUtc=2026-09-30
+Authorization: Bearer {{prosumerToken}}
+
+### 3.7 Staff calls /mine -> 403
+GET {{host}}/api/reservations/mine
+Authorization: Bearer {{backofficeToken}}
+
+### 3.8 Staff list with filters -> 200 with totalCount and totalPages
+GET {{host}}/api/reservations?status=Pending&stationId={{stationId}}&page=1&pageSize=10
+Authorization: Bearer {{backofficeToken}}
+
+### 3.9 Staff list by reference -> 200, one item
+GET {{host}}/api/reservations?reference={{reservationId}}
+Authorization: Bearer {{operatorToken}}
+
+### 3.10 Prosumer calls staff list -> 403
+GET {{host}}/api/reservations
+Authorization: Bearer {{prosumerToken}}
+
+### 3.11 Bad status filter -> 400
+GET {{host}}/api/reservations?status=Bogus
+Authorization: Bearer {{backofficeToken}}
+
+### 3.12 Bad date filter -> 400
+GET {{host}}/api/reservations/mine?dateUtc=yesterday
+Authorization: Bearer {{prosumerToken}}
+
+### 3.13 pageSize too large -> 400
+GET {{host}}/api/reservations?pageSize=500
+Authorization: Bearer {{backofficeToken}}
+
+### 3.14 Bad stationId -> 400
+GET {{host}}/api/reservations?stationId=abc
+Authorization: Bearer {{backofficeToken}}
+
+############################################################
+# 4. Details (Member 3 endpoint, reused)
+############################################################
+
+### 4.1 Owner reads details -> 200, includes approvedAtUtc/completedAtUtc fields
+GET {{host}}/api/reservations/{{reservationId}}
+Authorization: Bearer {{prosumerToken}}
+
+### 4.2 Staff reads details -> 200
+GET {{host}}/api/reservations/{{reservationId}}
+Authorization: Bearer {{operatorToken}}
+
+### 4.3 Another prosumer's reservation -> 403
+GET {{host}}/api/reservations/{{reservationId}}
+Authorization: Bearer {{otherProsumerToken}}
+
+############################################################
+# 5. QR before approval
+############################################################
+
+### 5.1 QR for a pending reservation -> 409 "only available for an approved reservation"
+GET {{host}}/api/reservations/{{reservationId}}/qr
+Authorization: Bearer {{prosumerToken}}
+
+############################################################
+# 6. Approval
+############################################################
+
+### 6.1 Prosumer tries to approve -> 403
+PATCH {{host}}/api/reservations/{{reservationId}}/approve
+Authorization: Bearer {{prosumerToken}}
+
+### 6.2 Approve with a stale version -> 409
+PATCH {{host}}/api/reservations/{{reservationId}}/approve
+Authorization: Bearer {{backofficeToken}}
+Content-Type: application/json
+
+{ "version": 999 }
+
+### 6.3 Approve unknown reservation -> 404
+PATCH {{host}}/api/reservations/{{missingId}}/approve
+Authorization: Bearer {{backofficeToken}}
+
+### 6.4 Approve with malformed id -> 400
+PATCH {{host}}/api/reservations/not-an-id/approve
+Authorization: Bearer {{backofficeToken}}
+
+### 6.5 Approve -> 200, status Approved, approvedAtUtc set, version +1, remainingBookings unchanged
+PATCH {{host}}/api/reservations/{{reservationId}}/approve
+Authorization: Bearer {{backofficeToken}}
+
+### 6.6 Approve again -> 409 "already approved"
+PATCH {{host}}/api/reservations/{{reservationId}}/approve
+Authorization: Bearer {{operatorToken}}
+
+### 6.7 Reject an approved reservation -> 409 "Only a pending reservation can be rejected"
+PATCH {{host}}/api/reservations/{{reservationId}}/reject
+Authorization: Bearer {{backofficeToken}}
+
+### 6.8 Reject second reservation -> 200, status Rejected, rejectedAtUtc set, remainingBookings +1
+PATCH {{host}}/api/reservations/{{reservation2Id}}/reject
+Authorization: Bearer {{operatorToken}}
+
+### 6.9 Reject it again -> 409, capacity NOT released again (check remainingBookings via 4.x)
+PATCH {{host}}/api/reservations/{{reservation2Id}}/reject
+Authorization: Bearer {{operatorToken}}
+
+### 6.10 Complete a rejected reservation -> 409 "Cannot complete a rejected reservation"
+PATCH {{host}}/api/reservations/{{reservation2Id}}/complete
+Authorization: Bearer {{operatorToken}}
+
+### 6.11 Summary after approval -> approvedFutureCount increased
+GET {{host}}/api/reservations/summary
+Authorization: Bearer {{prosumerToken}}
+
+############################################################
+# 7. QR issue
+############################################################
+
+### 7.1 Owner gets QR -> 200, copy qr.payload into @qrPayload
+GET {{host}}/api/reservations/{{reservationId}}/qr
+Authorization: Bearer {{prosumerToken}}
+
+### 7.2 Another prosumer requests QR -> 403
+GET {{host}}/api/reservations/{{reservationId}}/qr
+Authorization: Bearer {{otherProsumerToken}}
+
+### 7.3 Staff requests QR -> 403 (only the owning prosumer)
+GET {{host}}/api/reservations/{{reservationId}}/qr
+Authorization: Bearer {{operatorToken}}
+
+### 7.4 QR for unknown reservation -> 404
+GET {{host}}/api/reservations/{{missingId}}/qr
+Authorization: Bearer {{prosumerToken}}
+
+############################################################
+# 8. QR verify (read-only)
+############################################################
+
+### 8.1 Prosumer verifies -> 403
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{prosumerToken}}
+Content-Type: application/json
+
+{ "payload": "{{qrPayload}}" }
+
+### 8.2 Backoffice verifies -> 403 (Grid Operator only)
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{backofficeToken}}
+Content-Type: application/json
+
+{ "payload": "{{qrPayload}}" }
+
+### 8.3 Missing payload -> 400
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ }
+
+### 8.4 Forged QR: garbage -> 400 "Invalid QR code"
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "not-a-qr-code" }
+
+### 8.5 Forged QR: self-made payload with fake signature -> 400 "Invalid QR code"
+# Payload = {"reservationId":"6660a1f28a1b2c3d4e5f6b01", ...} signed with a wrong key.
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "eyJyZXNlcnZhdGlvbklkIjoiNjY2MGExZjI4YTFiMmMzZDRlNWY2YjAxIn0.c2lnbmF0dXJlLW1hZGUtdXAtYnktYW4tYXR0YWNrZXItMDA" }
+
+### 8.6 Forged QR: take the real @qrPayload and change one character in the part
+# before the dot, then send it -> 400 "Invalid QR code"
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "EDIT-ME-tampered-copy-of-qrPayload" }
+
+### 8.7 Expired QR -> 400 "This QR code has expired."
+# Use a payload issued for a slot that has already ended, or set
+# QR_VALID_AFTER_END_MINUTES=0, issue a QR, and wait until the slot end.
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "PASTE-EXPIRED-QR-PAYLOAD" }
+
+### 8.8 Too early -> 400 "not valid yet" if now is more than
+# QR_VALID_BEFORE_START_MINUTES before the slot start. Otherwise 200.
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "{{qrPayload}}" }
+
+### 8.9 Valid QR inside the window -> 200 with station, slot times, prosumer NIC and name
+# Nothing changes: the reservation version stays the same (check with 4.2).
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "{{qrPayload}}" }
+
+############################################################
+# 9. Complete
+############################################################
+
+### 9.1 Prosumer completes -> 403
+PATCH {{host}}/api/reservations/{{reservationId}}/complete
+Authorization: Bearer {{prosumerToken}}
+
+### 9.2 Backoffice completes -> 403 (Grid Operator only)
+PATCH {{host}}/api/reservations/{{reservationId}}/complete
+Authorization: Bearer {{backofficeToken}}
+
+### 9.3 Complete unknown reservation -> 404
+PATCH {{host}}/api/reservations/{{missingId}}/complete
+Authorization: Bearer {{operatorToken}}
+
+### 9.4 Complete -> 200, status Completed, completedAtUtc and completedByOperatorId set,
+# version +1, remainingBookings +1
+PATCH {{host}}/api/reservations/{{reservationId}}/complete
+Authorization: Bearer {{operatorToken}}
+
+### 9.5 Double complete -> 409 "already completed. Capacity was not released again."
+PATCH {{host}}/api/reservations/{{reservationId}}/complete
+Authorization: Bearer {{operatorToken}}
+
+### 9.6 Verify the QR after completion -> 409 "already completed"
+POST {{host}}/api/reservations/verify-qr
+Authorization: Bearer {{operatorToken}}
+Content-Type: application/json
+
+{ "payload": "{{qrPayload}}" }
+
+### 9.7 QR for a completed reservation -> 409
+GET {{host}}/api/reservations/{{reservationId}}/qr
+Authorization: Bearer {{prosumerToken}}
+
+### 9.8 History shows the completed transfer -> 200
+GET {{host}}/api/reservations/mine?status=Completed
+Authorization: Bearer {{prosumerToken}}
+
+############################################################
+# 10. Cancelled reservation (Member 3 cancel + Member 4 checks)
+############################################################
+
+### 10.1 Create, approve, get QR, then cancel via Member 3:
+# PATCH {{host}}/api/reservations/{id}/cancel
+# Then verify the old QR -> 409 "This reservation was cancelled"
+# And complete it -> 409 "Cannot complete a cancelled reservation"
