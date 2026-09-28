@@ -8,6 +8,7 @@ const getLinks = (role) => {
       { to: '/dashboard/users/pending', label: 'Pending Activations', end: true },
       { to: '/dashboard/users/create-prosumer', label: 'Create Prosumer', end: true },
       { to: '/dashboard/users/create-staff', label: 'Create Staff', end: true },
+      { to: '/bookings', label: 'Bookings', end: false },
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
@@ -17,6 +18,7 @@ const getLinks = (role) => {
       { to: '/dashboard/stations', label: 'Stations', end: false },
       { to: '/dashboard/weekly-schedule', label: 'Schedule', end: true },
       { to: '/dashboard/slot-lookup', label: 'Slot lookup', end: true },
+      { to: '/bookings', label: 'Bookings', end: false },
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
@@ -118,7 +120,11 @@ export default function App() {
             </span>
             <span className="hidden text-outline-variant sm:inline">/</span>
             <span className="text-label-md font-semibold text-on-surface">
-              {pathname.startsWith('/reservations') ? 'Reservations' : crumbs[pathname] || 'Dashboard'}
+              {pathname.startsWith('/reservations')
+                ? 'Reservations'
+                : pathname.startsWith('/bookings')
+                  ? 'Bookings'
+                  : crumbs[pathname] || 'Dashboard'}
             </span>
           </div>
           <div className="flex items-center gap-4">

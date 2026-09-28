@@ -1,4 +1,17 @@
-async function request(path, options = {}) {
+/**
+ * Error thrown for failed API calls. `message` is unchanged from before;
+ * `status` (0 = network failure) and `data` (parsed body) are extra details.
+ */
+export class ApiError extends Error {
+  constructor(message, status, data = null) {
+    super(message)
+    this.name = 'ApiError'
+    this.status = status
+    this.data = data
+  }
+}
+
+export async function request(path, options = {}) {
   const headers = { ...(options.headers || {}) }
   if (options.body) {
     headers['Content-Type'] = 'application/json'
@@ -13,7 +26,7 @@ async function request(path, options = {}) {
   try {
     response = await fetch(`/api${path}`, { ...options, headers })
   } catch {
-    throw new Error('Cannot reach the API. Start it with dotnet run in the api folder.')
+    throw new ApiError('Cannot reach the API. Start it with dotnet run in the api folder.', 0)
   }
 
   const text = await response.text()
@@ -28,15 +41,15 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new Error('Session expired. Please login again.')
+      throw new ApiError('Session expired. Please login again.', 401, data)
     }
     if (response.status === 403) {
-      throw new Error('You do not have permission to perform this action.')
+      throw new ApiError('You do not have permission to perform this action.', 403, data)
     }
     if (response.status === 404) {
-      throw new Error('User not found.')
+      throw new ApiError('User not found.', 404, data)
     }
-    throw new Error(data?.message || `Request failed (${response.status})`)
+    throw new ApiError(data?.message || `Request failed (${response.status})`, response.status, data)
   }
 
   return data
