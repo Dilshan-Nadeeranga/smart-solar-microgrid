@@ -16,7 +16,7 @@ const ACTIONS = {
     icon: 'check_circle',
     tone: 'success',
     title: 'Booking confirmed',
-    description: 'The reservation is saved as Pending and a space has been reserved in the slot.',
+    description: 'The reservation is approved and a space has been reserved in the slot.',
   },
   updated: {
     icon: 'published_with_changes',
@@ -113,10 +113,16 @@ export default function ActionSummary({
         </Notice>
       )}
 
-      {action === 'created' && (
-        <Notice tone="info" title="What happens next">
-          A Backoffice user reviews and approves the booking. The prosumer can change or cancel it
+      {action === 'created' && reservation.status === 'Approved' && (
+        <Notice tone="success" title="Approved">
+          Bookings created here are approved immediately. The prosumer can change or cancel this one
           until 12 hours before the start time.
+        </Notice>
+      )}
+
+      {action === 'created' && reservation.status === 'Pending' && (
+        <Notice tone="info" title="Waiting for approval">
+          This booking stays pending until a grid operator approves or rejects it.
         </Notice>
       )}
 

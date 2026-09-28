@@ -43,6 +43,7 @@ public class ReservationService
         string? requestedProsumerId)
     {
         var (_, role) = RequireAuth(actor);
+        var staffBooking = role is Role.BACKOFFICE or Role.GRID_OPERATOR;
         var prosumerId = await ResolveProsumerIdAsync(actor, role, requestedProsumerId);
         await EnsureProsumerActiveAsync(prosumerId);
 
@@ -80,16 +81,22 @@ public class ReservationService
                 ProsumerId = prosumerId,
                 StationId = slot.StationId,
                 SlotId = slot.Id,
-                Status = ReservationStatus.Pending,
+                // Staff bookings are approved immediately. Only a prosumer
+                // booking from the app waits for approval.
+                Status = staffBooking ? ReservationStatus.Approved : ReservationStatus.Pending,
                 CreatedAtUtc = now,
                 UpdatedAtUtc = now,
+                ApprovedAtUtc = staffBooking ? now : null,
                 Version = 1
             };
 
             await _reservations.InsertAsync(reservation, session);
             await session.CommitTransactionAsync();
 
-            return BuildSummary(reservation, reserved, "Reservation created.");
+            return BuildSummary(
+                reservation,
+                reserved,
+                staffBooking ? "Reservation created and approved." : "Reservation created.");
         }
         catch
         {

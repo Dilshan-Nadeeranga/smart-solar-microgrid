@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import ActionSummary from './components/ActionSummary';
 import CreateBooking from './components/CreateBooking';
 import EditBooking from './components/EditBooking';
@@ -6,14 +7,15 @@ import ReservationDetails from './components/ReservationDetails';
 import ReservationHome from './components/ReservationHome';
 import { Icon, PageHeader } from './components/ui';
 import { useReferenceData } from './hooks';
-import { navigate, paths, useRoute } from './router';
+import { bindRouter, navigate, paths, useRoute } from './router';
 import './reservations.css';
 
 const APP_NAME = 'Smart Solar Microgrid';
 
 const PAGE_TITLES = {
-  home: 'Energy-slot bookings',
-  create: 'Book an energy slot',
+  home: 'All reservations',
+  pending: 'Pending reservations',
+  create: 'Create reservations',
   details: 'Reservation details',
   edit: 'Change booking',
   summary: 'Booking summary',
@@ -23,6 +25,11 @@ const PAGE_TITLES = {
 export default function ReservationsModule() {
   const refData = useReferenceData();
   const route = useRoute();
+  const routerNavigate = useNavigate();
+
+  useEffect(() => {
+    bindRouter(routerNavigate);
+  }, [routerNavigate]);
 
   const missingSummary = route.name === 'summary' && !route.summary;
 
@@ -45,6 +52,10 @@ export default function ReservationsModule() {
     <div className="rm-module">
       {route.name === 'home' && (
         <ReservationHome refData={refData} onCreate={goCreate} onOpen={goDetails} />
+      )}
+
+      {route.name === 'pending' && (
+        <ReservationHome view="pending" refData={refData} onCreate={goCreate} onOpen={goDetails} />
       )}
 
       {route.name === 'create' && (
