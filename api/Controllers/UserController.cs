@@ -348,4 +348,16 @@ public async Task<IActionResult> ActivateUser(string nic)
 
         return Ok(new { message = result.Message });
     }
+
+    [Authorize(Roles = "BACKOFFICE")]
+    [HttpGet("{nic}/nic-document")]
+    public async Task<IActionResult> GetNicDocument(string nic)
+    {
+        var result = await _userService.GetNicDocumentAsync(nic);
+        if (!result.Success || result.FileBytes == null || result.ContentType == null)
+        {
+            return NotFound(new { message = result.Message });
+        }
+        return File(result.FileBytes, result.ContentType, result.FileName ?? "document");
+    }
 }

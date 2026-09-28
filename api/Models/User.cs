@@ -24,4 +24,10 @@ public class User
     public DateTime CreatedDate { get; set; }
 
     public DateTime UpdatedDate { get; set; }
+
+    public bool EmailVerified { get; set; }
+
+    public string NicDocumentId { get; set; } = string.Empty;
+
+    public string NicVerificationStatus { get; set; } = "PENDING_REVIEW";
 }
