@@ -43,10 +43,13 @@ public class AuthController : ControllerBase
         return Ok(result.Response);
     }
 
-[HttpPost("initialize-backoffice")]
-public async Task<IActionResult> InitializeBackoffice(
-    InitializeBackofficeRequest request)
+
+
+[HttpPost("register")]
+public async Task<IActionResult> RegisterProsumer(
+    [FromBody] RegisterProsumerRequest request)
 {
+    // Validate the required registration information.
     if (string.IsNullOrWhiteSpace(request.NIC) ||
         string.IsNullOrWhiteSpace(request.Name) ||
         string.IsNullOrWhiteSpace(request.Email) ||
@@ -58,20 +61,24 @@ public async Task<IActionResult> InitializeBackoffice(
         });
     }
 
+    // Create a Prosumer account from the registration request.
     var user = new User
     {
         NIC = request.NIC,
         Name = request.Name,
         Email = request.Email,
         Phone = request.Phone,
-        Address = request.Address
+        Address = request.Address,
+        Role = Role.PROSUMER,
+        AccountStatus = AccountStatus.PENDING
     };
 
-    var result = await _userService.InitializeBackofficeAsync(
+    var result = await _userService.RegisterProsumerAsync(
         user,
         request.Password
     );
 
+    // Return conflict when the NIC is already registered.
     if (!result.Success)
     {
         return Conflict(new
