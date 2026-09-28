@@ -185,14 +185,20 @@ public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
 
 
     public async Task<(bool Success, string Message, LoginResponse? Response)> LoginAsync(
-    string nic,
+    string nicOrEmail,
     string password)
 {
-    var user = await _userRepository.GetByNICAsync(nic);
+    var identifier = nicOrEmail.Trim();
+    var user = await _userRepository.GetByNICAsync(identifier);
 
     if (user == null)
     {
-        return (false, "Invalid NIC or password.", null);
+        user = await _userRepository.GetByEmailAsync(identifier);
+    }
+
+    if (user == null)
+    {
+        return (false, "Invalid NIC, email, or password.", null);
     }
 
     if (user.AccountStatus != AccountStatus.ACTIVE)
@@ -202,7 +208,7 @@ public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
 
     if (string.IsNullOrWhiteSpace(user.PasswordHash))
     {
-        return (false, "Invalid NIC or password.", null);
+        return (false, "Invalid NIC, email, or password.", null);
     }
 
     var passwordValid = BCrypt.Net.BCrypt.Verify(
@@ -212,7 +218,7 @@ public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
 
     if (!passwordValid)
     {
-        return (false, "Invalid NIC or password.", null);
+        return (false, "Invalid NIC, email, or password.", null);
     }
 
     var token = _jwtService.GenerateToken(user);

@@ -45,8 +45,8 @@ export default function CreateStaffPage() {
   return (
     <div className="flex flex-col gap-6 max-w-3xl mx-auto">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-on-surface">Create Staff</h1>
-        <p className="text-sm text-secondary">Register a new Backoffice or Grid Operator account</p>
+        <h1 className="text-2xl font-bold text-on-surface">Create staff</h1>
+        <p className="text-sm text-secondary">Create a web user with the Backoffice or Grid Operator role.</p>
       </div>
 
       {message.text && (
@@ -80,13 +80,14 @@ export default function CreateStaffPage() {
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-on-surface">Email</label>
+            <label className="mb-1 block text-sm font-medium text-on-surface">Email *</label>
             <input
               type="email"
               name="email"
               value={formData.email}
               onChange={handleChange}
               className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-2 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              required
             />
           </div>
           <div>
@@ -129,8 +130,8 @@ export default function CreateStaffPage() {
               className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-2 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
             >
-              <option value="GRID_OPERATOR">GRID_OPERATOR</option>
-              <option value="BACKOFFICE">BACKOFFICE</option>
+              <option value="BACKOFFICE">Backoffice</option>
+              <option value="GRID_OPERATOR">Grid Operator</option>
             </select>
           </div>
           <div className="md:col-span-2 mt-4 flex justify-end">

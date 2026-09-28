@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { stationsApi } from '../../../api.js'
+import { useAuth } from '../../../auth/AuthContext'
 
 const emptyStation = {
   name: '',
@@ -74,6 +75,8 @@ function fieldClass() {
 }
 
 export default function StationsPage() {
+  const { user } = useAuth()
+  const viewOnly = user?.role === 'GRID_OPERATOR'
   const [stations, setStations] = useState([])
   const [query, setQuery] = useState('')
   const [selectedId, setSelectedId] = useState('')
@@ -114,13 +117,14 @@ export default function StationsPage() {
 
   async function openStation(id, { edit = false } = {}) {
     const request = ++openRequest.current
+    const canEdit = edit && !viewOnly
     setSelectedId(id)
-    setShowEdit(edit)
+    setShowEdit(canEdit)
     setEditingDay('')
     const station = await stationsApi.get(id)
     if (request !== openRequest.current) return
     setEditForm(stationToForm(station))
-    if (edit) {
+    if (canEdit || viewOnly) {
       const rows = await stationsApi.schedules(id)
       if (request !== openRequest.current) return
       setSchedules(mergeWeek(rows))
@@ -234,17 +238,19 @@ export default function StationsPage() {
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
             <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold uppercase tracking-wide text-on-primary-container">
-              BackOfficer Control
+              {viewOnly ? 'View only' : 'BackOfficer Control'}
             </span>
             <span className="text-label-sm text-secondary">
               {selected ? `Station ${selected.id.slice(-6)}` : 'No station selected'}
             </span>
           </div>
           <h1 className="font-headline-xl text-headline-xl font-bold tracking-tight text-on-surface">
-            Station Management
+            {viewOnly ? 'Stations' : 'Station Management'}
           </h1>
           <p className="text-secondary">
-            Manage solar stations and battery storage capacities.
+            {viewOnly
+              ? 'View solar stations and battery storage capacities.'
+              : 'Manage solar stations and battery storage capacities.'}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
@@ -266,13 +272,15 @@ export default function StationsPage() {
               <span className="font-bold text-on-surface">{totalSlots} total</span>
             </div>
           </div>
-          <Link
-            to="/dashboard/stations/create"
-            className="flex h-11 items-center gap-2 rounded-lg bg-primary-container px-5 text-label-md font-semibold text-on-primary-container shadow-sm"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            Create station
-          </Link>
+          {!viewOnly && (
+            <Link
+              to="/dashboard/stations/create"
+              className="flex h-11 items-center gap-2 rounded-lg bg-primary-container px-5 text-label-md font-semibold text-on-primary-container shadow-sm"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              Create station
+            </Link>
+          )}
         </div>
       </div>
 
@@ -290,7 +298,7 @@ export default function StationsPage() {
               </span>
             </div>
             <p className="-mt-2 text-secondary">
-              Select a station to update its details.
+              {viewOnly ? 'Select a station to view its details.' : 'Select a station to update its details.'}
             </p>
             <div className="relative">
               <span className="material-symbols-outlined absolute top-3 left-3 text-[18px] text-secondary">search</span>
@@ -340,18 +348,20 @@ export default function StationsPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          aria-label={`Edit ${station.name}`}
-                          title="Edit station"
-                          onClick={(event) => {
-                            event.stopPropagation()
-                            openStation(station.id, { edit: true }).catch((error) => toast('error', error.message))
-                          }}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-container text-on-primary-container"
-                        >
-                          <span className="material-symbols-outlined text-[18px]">edit</span>
-                        </button>
+                        {!viewOnly && (
+                          <button
+                            type="button"
+                            aria-label={`Edit ${station.name}`}
+                            title="Edit station"
+                            onClick={(event) => {
+                              event.stopPropagation()
+                              openStation(station.id, { edit: true }).catch((error) => toast('error', error.message))
+                            }}
+                            className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-container text-on-primary-container"
+                          >
+                            <span className="material-symbols-outlined text-[18px]">edit</span>
+                          </button>
+                        )}
                         <span className="inline-flex items-center gap-1 rounded-full bg-[#DCFCE7] px-2 py-0.5 text-label-sm font-semibold text-[#15803D]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#15803D]" />
                           Active
@@ -377,6 +387,67 @@ export default function StationsPage() {
         </div>
 
         <div className="flex w-full flex-col gap-8">
+          {viewOnly && selected && (
+            <div className="flex flex-col gap-6 rounded-2xl bg-surface-container-lowest p-6 shadow-sm">
+              <div className="flex items-center gap-3 border-b border-outline-variant/20 pb-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-container text-primary">
+                  <span className="material-symbols-outlined text-[22px]">visibility</span>
+                </div>
+                <div>
+                  <h2 className="font-headline-md text-headline-md font-semibold">{selected.name}</h2>
+                  <p className="text-secondary">Station details are view only.</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="md:col-span-2">
+                  <span className="text-label-sm uppercase text-secondary">Address</span>
+                  <p className="font-semibold">{editForm.address || 'No address'}</p>
+                </div>
+                <div>
+                  <span className="text-label-sm uppercase text-secondary">Latitude</span>
+                  <p className="font-semibold">{editForm.latitude}</p>
+                </div>
+                <div>
+                  <span className="text-label-sm uppercase text-secondary">Longitude</span>
+                  <p className="font-semibold">{editForm.longitude}</p>
+                </div>
+                <div>
+                  <span className="text-label-sm uppercase text-secondary">Capacity</span>
+                  <p className="font-semibold">{editForm.capacityKw} kW</p>
+                </div>
+                <div>
+                  <span className="text-label-sm uppercase text-secondary">Battery slots</span>
+                  <p className="font-semibold">{editForm.batteryStorageSlots}</p>
+                </div>
+              </div>
+              <div className="overflow-x-auto rounded-xl bg-surface-container-low">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="bg-surface-container text-label-sm uppercase tracking-wider text-secondary">
+                      <th className="px-4 py-3">Day</th>
+                      <th className="px-4 py-3">Opening</th>
+                      <th className="px-4 py-3">Closing</th>
+                      <th className="px-4 py-3">Available</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-outline-variant/10">
+                    {schedules.map((schedule) => (
+                      <tr key={schedule.day}>
+                        <td className="px-4 py-3 font-semibold">{schedule.day}</td>
+                        <td className="px-4 py-3">{clock(schedule.openingTime)}</td>
+                        <td className="px-4 py-3">{clock(schedule.closingTime)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`rounded-full px-2.5 py-0.5 text-label-sm font-semibold ${schedule.isAvailable ? 'bg-[#DCFCE7] text-[#15803D]' : 'bg-surface-container text-secondary'}`}>
+                            {schedule.isAvailable ? 'Yes' : 'No'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
           {selectedId && showEdit && (
               <div className="flex flex-col gap-6 rounded-2xl bg-surface-container-lowest p-6 shadow-sm">
                 <div className="flex items-start justify-between gap-3 border-b border-outline-variant/20 pb-4">
