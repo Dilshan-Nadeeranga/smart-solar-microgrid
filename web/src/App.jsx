@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 const links = [
   { to: '/dashboard', label: 'Dashboard', end: true },
   { to: '/dashboard/stations', label: 'Stations', end: false },
-  { to: '/dashboard/weekly-schedule', label: 'Schedule', end: true },
   { to: '/dashboard/slot-lookup', label: 'Slot lookup', end: true },
   { to: '/reservations', label: 'Reservations', end: false },
 ]
@@ -12,7 +11,6 @@ const crumbs = {
   '/dashboard': 'Dashboard',
   '/dashboard/stations': 'Stations',
   '/dashboard/stations/create': 'Create station',
-  '/dashboard/weekly-schedule': 'Schedule',
   '/dashboard/slot-lookup': 'Slot lookup',
 }
 
