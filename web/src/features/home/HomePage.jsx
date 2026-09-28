@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 const NAV = [
+  { href: '#home', label: 'Home' },
   { href: '#how-it-works', label: 'How It Works' },
   { href: '#features', label: 'Features' },
   { href: '#mobile-app', label: 'Mobile App' },
@@ -31,7 +32,7 @@ const ROLES = [
     title: 'Solar Prosumers',
     body: 'Residential solar system owners looking to reserve feed-in slots, monitor kW output, and earn energy credits easily via Android.',
     points: ['Simple 1-click slot booking', 'Dynamic secure QR pass', 'Battery SoC and infeed tracking'],
-    link: { href: '#mobile-app', label: 'Download Mobile App', className: 'text-primary' },
+    link: { href: '#mobile-app', label: 'Download Mobile App', cta: 'download' },
   },
   {
     icon: 'terminal',
@@ -77,6 +78,19 @@ function Mark({ className = 'h-8 w-8' }) {
 }
 
 function RoleLink({ link }) {
+  if (link.cta === 'download') {
+    return (
+      <a
+        href={link.href}
+        className="inline-flex w-full items-center justify-between gap-3 rounded-full bg-primary-container py-2 pr-2 pl-5 text-sm font-bold text-on-surface shadow-sm transition hover:brightness-95"
+      >
+        {link.label}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-on-surface text-primary-container">
+          <Icon name="arrow_downward" className="text-[20px]" />
+        </span>
+      </a>
+    )
+  }
   const className = `flex items-center gap-1.5 text-sm font-bold hover:brightness-90 ${link.className}`
   const content = (
     <>
@@ -84,17 +98,10 @@ function RoleLink({ link }) {
       <Icon name="arrow_forward" className="text-[16px]" />
     </>
   )
-  if (link.to) {
-    return (
-      <Link to={link.to} className={className}>
-        {content}
-      </Link>
-    )
-  }
   return (
-    <a href={link.href} className={className}>
+    <Link to={link.to} className={className}>
       {content}
-    </a>
+    </Link>
   )
 }
 
@@ -104,7 +111,7 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="home-page relative min-h-screen overflow-x-hidden bg-surface text-on-surface antialiased selection:bg-primary-container/40 selection:text-primary">
+    <div id="home" className="home-page relative min-h-screen overflow-x-hidden bg-surface text-on-surface antialiased selection:bg-primary-container/40 selection:text-primary">
       <div className="pointer-events-none fixed top-0 left-1/4 -z-10 h-[600px] w-[600px] rounded-full bg-teal-200/25 blur-[140px]" />
       <div className="pointer-events-none fixed top-1/3 right-0 -z-10 h-[550px] w-[550px] rounded-full bg-primary-container/30 blur-[160px]" />
       <div className="pointer-events-none fixed bottom-10 left-10 -z-10 h-[500px] w-[500px] rounded-full bg-blue-200/25 blur-[150px]" />
@@ -117,8 +124,13 @@ export default function HomePage() {
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             {NAV.map((item) => (
-              <a key={item.href} href={item.href} className="text-[15px] font-medium text-secondary transition-colors hover:text-on-surface">
+              <a
+                key={item.href}
+                href={item.href}
+                className="group relative py-1 text-[15px] font-medium text-secondary transition-colors hover:text-on-surface"
+              >
                 {item.label}
+                <span className="absolute right-0 -bottom-1.5 left-0 h-0.5 origin-left scale-x-0 rounded-full bg-[#F5AD00] transition-transform duration-200 group-hover:scale-x-100" />
               </a>
             ))}
           </nav>
@@ -438,38 +450,52 @@ export default function HomePage() {
 
         <section id="about" className="w-full bg-surface py-16">
           <div className="mx-auto max-w-7xl px-5 lg:px-10">
-            <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-sm md:p-12">
-              <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
-                <div className="flex flex-col gap-3 lg:col-span-7">
-                  <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
-                    <Icon name="school" className="text-[16px]" />
-                    Sri Lanka Institute of Information Technology (SLIIT)
-                  </div>
-                  <h3 className="text-2xl font-bold text-on-surface">SE4040 Enterprise Application Development</h3>
-                  <p className="text-sm leading-relaxed text-secondary">
-                    Solarix is engineered as a graduation capstone research prototype demonstrating peer-to-peer microgrid load management, distributed telemetry ingestion, and cryptographically verified energy distribution.
-                  </p>
-                  <div className="flex flex-wrap gap-4 pt-2 text-xs font-medium text-secondary">
-                    <span>Faculty of Computing · Software Engineering</span>
-                    <span className="text-outline-variant">•</span>
-                    <span>Academic Year 2026</span>
-                  </div>
+            <div className="rounded-[2rem] bg-primary-container p-4 text-on-surface shadow-md md:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-full bg-surface-container-lowest px-4 py-2.5 text-on-surface">
+                <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
+                  <Icon name="sunny" className="text-[18px]" />
+                  Solarix
                 </div>
-                <div className="rounded-xl border border-outline-variant/40 bg-surface-container-low p-6 lg:col-span-5">
-                  <span className="mb-3 block text-xs font-bold tracking-wider text-on-surface uppercase">Development Team (Group 2026-SE-44)</span>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    {[
-                      ['Kasun J.', 'Team Lead & System Architect'],
-                      ['P. Alwis', 'Microgrid Infrastructure'],
-                      ['D. Perera', 'Backend Microservices'],
-                      ['T. Silva', 'Frontend & Telemetry UI'],
-                    ].map(([name, role]) => (
-                      <div key={name} className="flex flex-col">
-                        <span className="font-bold text-on-surface">{name}</span>
-                        <span className="text-secondary">{role}</span>
-                      </div>
-                    ))}
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <Icon name="solar_power" className="text-[18px]" />
+                  Smart Solar Microgrid Trading
+                </div>
+              </div>
+              <div className="flex flex-col gap-6 px-2 pt-6 pb-2 lg:px-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-2xl">
+                    <h3 className="text-2xl font-bold">Trade rooftop solar. Power the neighborhood.</h3>
+                    <p className="mt-2 text-sm leading-relaxed font-medium">
+                      Reserve a station slot, carry a signed QR pass, and feed clean energy into the community grid — metered and verified in real time.
+                    </p>
                   </div>
+                  <Link
+                    to="/reservations"
+                    className="inline-flex w-fit items-center gap-3 rounded-full bg-on-surface py-2 pr-2 pl-5 text-sm font-bold text-primary-container"
+                  >
+                    Book an energy slot
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-on-surface">
+                      <Icon name="arrow_forward" className="text-[20px]" />
+                    </span>
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ['event_available', 'Reserve a slot', 'Lock a feed-in window up to 7 days ahead'],
+                    ['qr_code_2', 'QR-verified pass', 'One-time signed dispatch at the node'],
+                    ['bolt', 'Transfer energy', 'Metered injection with live settlement'],
+                    ['groups', 'Share the grid', 'Balance neighborhood load together'],
+                  ].map(([icon, title, body]) => (
+                    <div key={title} className="flex items-start gap-3 rounded-[1.25rem] bg-surface-container-lowest p-4">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-surface">
+                        <Icon name={icon} className="text-[18px]" />
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="text-sm font-bold">{title}</span>
+                        <span className="text-xs font-medium text-secondary">{body}</span>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
