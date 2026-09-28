@@ -1,22 +1,28 @@
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from './auth/AuthContext'
 
+const stationLinks = [
+  { to: '/dashboard', label: 'Dashboard', end: true },
+  { to: '/dashboard/stations', label: 'Stations', end: false },
+  { to: '/dashboard/slot-lookup', label: 'Slot lookup', end: true },
+  { to: '/reservations', label: 'Reservations', end: false },
+]
+
 const getLinks = (role) => {
   if (role === 'BACKOFFICE') {
     return [
+      ...stationLinks,
+      { to: '/dashboard/users/create-staff', label: 'Create staff', end: true },
       { to: '/dashboard/users', label: 'User Management', end: true },
       { to: '/dashboard/users/pending', label: 'Pending Activations', end: true },
       { to: '/dashboard/users/create-prosumer', label: 'Create Prosumer', end: true },
-      { to: '/dashboard/users/create-staff', label: 'Create Staff', end: true },
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
   if (role === 'GRID_OPERATOR') {
     return [
-      { to: '/dashboard', label: 'Dashboard', end: true },
-      { to: '/dashboard/stations', label: 'Stations', end: false },
-      { to: '/dashboard/weekly-schedule', label: 'Schedule', end: true },
-      { to: '/dashboard/slot-lookup', label: 'Slot lookup', end: true },
+      { to: '/dashboard/stations', label: 'Stations', end: true },
+      { to: '/reservations', label: 'Reservations', end: false },
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
@@ -27,11 +33,8 @@ const getLinks = (role) => {
     ]
   }
   return [
-    { to: '/dashboard', label: 'Dashboard', end: true },
-    { to: '/dashboard/stations', label: 'Stations', end: false },
-    { to: '/dashboard/weekly-schedule', label: 'Schedule', end: true },
-    { to: '/dashboard/slot-lookup', label: 'Slot lookup', end: true },
-    { to: '/reservations', label: 'Reservations', end: false },
+    ...stationLinks,
+    { to: '/dashboard/users/create-staff', label: 'Create staff', end: true },
   ]
 }
 
@@ -60,7 +63,7 @@ export default function App() {
 
   const handleLogout = () => {
     logout()
-    navigate('/login')
+    navigate('/')
   }
 
   // Use dynamic links based on role, fallback to [] if user is null
@@ -70,7 +73,7 @@ export default function App() {
     <div className="min-h-screen bg-surface font-body-sm text-body-sm text-on-surface antialiased">
       <aside className="fixed left-0 top-0 hidden h-full w-60 flex-col justify-between border-r border-outline-variant/30 bg-surface-container-lowest py-6 lg:flex">
         <div className="flex flex-col gap-6">
-          <Link to={user?.role === 'BACKOFFICE' ? '/dashboard/users' : '/dashboard/stations'} className="flex items-start gap-3 px-6">
+          <Link to={user?.role === 'BACKOFFICE' ? '/dashboard/users' : user?.role === 'GRID_OPERATOR' ? '/reservations' : '/dashboard/stations'} className="flex items-start gap-3 px-6">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-container shadow-sm">
               <span className="material-symbols-outlined text-[20px] text-on-primary-container">sunny</span>
             </div>
@@ -79,10 +82,10 @@ export default function App() {
                 Smart Solar Microgrid
               </span>
               <span className="truncate text-xl font-bold leading-tight text-on-surface">
-                {user?.name || 'BackOfficer'}
+                {user?.role === 'GRID_OPERATOR' ? 'Grid Operator' : user?.role === 'BACKOFFICE' || !user ? 'BackOfficer' : user.name}
               </span>
               <span className="text-[11px] font-medium text-secondary">
-                {user?.role === 'BACKOFFICE' ? 'Administration' : 'Station Management'}
+                {user?.role === 'BACKOFFICE' ? 'Administration' : user?.role === 'GRID_OPERATOR' ? 'Grid Operator' : 'Station Management'}
               </span>
             </div>
           </Link>
@@ -98,13 +101,17 @@ export default function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="inline-block h-2 w-2 rounded-full bg-primary-container" />
-              <span className="text-label-sm text-secondary">{user?.role || 'Station desk'}</span>
+              <span className="text-label-sm text-secondary">
+                {user?.role === 'BACKOFFICE' ? 'BackOfficer' : user?.role === 'GRID_OPERATOR' ? 'Grid Operator' : user?.role || 'Station desk'}
+              </span>
             </div>
           </div>
           <button
+            type="button"
             onClick={handleLogout}
             className="flex w-full items-center gap-2 rounded-lg bg-error/10 px-4 py-2 text-sm font-semibold text-error hover:bg-error/20 transition-colors"
           >
+            <span className="material-symbols-outlined text-[18px]">logout</span>
             Logout
           </button>
         </div>
@@ -122,16 +129,20 @@ export default function App() {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-semibold hidden sm:inline">{user?.name}</span>
+            <span className="text-sm font-semibold hidden sm:inline">
+              {user?.role === 'BACKOFFICE' ? 'BackOfficer' : user?.role === 'GRID_OPERATOR' ? 'Grid Operator' : user?.name}
+            </span>
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-on-primary">
               <span className="material-symbols-outlined text-[18px]">person</span>
             </div>
-            <button
-              onClick={handleLogout}
-              className="lg:hidden text-error font-semibold text-sm ml-2"
-            >
-              Logout
-            </button>
+            {user && (
+              <button
+                onClick={handleLogout}
+                className="lg:hidden text-error font-semibold text-sm ml-2"
+              >
+                Logout
+              </button>
+            )}
           </div>
         </header>
 
