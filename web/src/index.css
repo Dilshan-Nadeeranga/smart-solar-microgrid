@@ -68,3 +68,9 @@ body {
 ::-webkit-scrollbar {
   display: none;
 }
+
+.home-page {
+  font-family: "Plus Jakarta Sans", Inter, sans-serif;
+}
+
+@source "./**/*.{jsx,js}";
