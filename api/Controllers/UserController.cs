@@ -16,73 +16,224 @@ public class UserController : ControllerBase
         _userService = userService;
     }
 
-    [HttpPost]
-    public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
-    {
-        if (string.IsNullOrWhiteSpace(request.NIC) ||
-            string.IsNullOrWhiteSpace(request.Name) ||
-            string.IsNullOrWhiteSpace(request.Email) ||
-            string.IsNullOrWhiteSpace(request.Password))
-        {
-            return BadRequest(new
-            {
-                message = "NIC, name, email and password are required."
-            });
-        }
-
-        var user = new User
-        {
-            NIC = request.NIC,
-            Name = request.Name,
-            Email = request.Email,
-            Phone = request.Phone,
-            Address = request.Address,
-            Role = request.Role,
-            AccountStatus = AccountStatus.ACTIVE
-        };
-
-        var result = await _userService.CreateUserAsync(
-            user,
-            request.Password
-        );
-
-        if (!result.Success)
-        {
-            return Conflict(new
-            {
-                message = result.Message
-            });
-        }
-
-        return CreatedAtAction(
-            nameof(GetUser),
-            new { nic = user.NIC },
-            result.User
-        );
-    }
-
-    [Authorize]
-    [HttpGet("{nic}")]
-    public async Task<IActionResult> GetUser(string nic)
-    {
-        var user = await _userService.GetByNICAsync(nic);
-
-        if (user == null)
-        {
-            return NotFound(new
-            {
-                message = "User not found."
-            });
-        }
-
-        user.PasswordHash = string.Empty;
-
-        return Ok(user);
-    }
 
     [Authorize(Roles = "BACKOFFICE")]
-[HttpGet("backoffice-test")]
-public IActionResult BackofficeTest()
+[HttpPost]
+public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)
+{
+    // Validate the required Prosumer information.
+    if (string.IsNullOrWhiteSpace(request.NIC) ||
+        string.IsNullOrWhiteSpace(request.Name) ||
+        string.IsNullOrWhiteSpace(request.Email) ||
+        string.IsNullOrWhiteSpace(request.Password))
+    {
+        return BadRequest(new
+        {
+            message = "NIC, name, email and password are required."
+        });
+    }
+
+    // This endpoint is only for creating Prosumer accounts.
+    if (request.Role != Role.PROSUMER)
+    {
+        return BadRequest(new
+        {
+            message = "This endpoint can only create Prosumer accounts."
+        });
+    }
+
+    // Create the Prosumer user object.
+    var user = new User
+    {
+        NIC = request.NIC,
+        Name = request.Name,
+        Email = request.Email,
+        Phone = request.Phone,
+        Address = request.Address,
+        Role = Role.PROSUMER,
+        AccountStatus = AccountStatus.PENDING
+    };
+
+    // Create the Prosumer through the service layer.
+    var result = await _userService.CreateUserAsync(
+        user,
+        request.Password
+    );
+
+    // Return conflict if the NIC already exists.
+    if (!result.Success)
+    {
+        return Conflict(new
+        {
+            message = result.Message
+        });
+    }
+
+    // Return the newly created Prosumer.
+    return CreatedAtAction(
+        nameof(GetUser),
+        new { nic = user.NIC },
+        result.User
+    );
+}
+
+    [Authorize(Roles = "BACKOFFICE")]
+[HttpPost("staff")]
+public async Task<IActionResult> CreateStaff(
+    [FromBody] CreateStaffRequest request)
+{
+    // Validate the required staff information.
+    if (string.IsNullOrWhiteSpace(request.NIC) ||
+        string.IsNullOrWhiteSpace(request.Name) ||
+        string.IsNullOrWhiteSpace(request.Email) ||
+        string.IsNullOrWhiteSpace(request.Password))
+    {
+        return BadRequest(new
+        {
+            message = "NIC, name, email and password are required."
+        });
+    }
+
+    // Create a user object from the request.
+    var user = new User
+    {
+        NIC = request.NIC,
+        Name = request.Name,
+        Email = request.Email,
+        Phone = request.Phone,
+        Address = request.Address,
+        Role = request.Role
+    };
+
+    // Create the staff account through the service layer.
+    var result = await _userService.CreateStaffAsync(
+        user,
+        request.Password
+    );
+
+    // Return conflict when the NIC already exists or the role is invalid.
+    if (!result.Success)
+    {
+        return Conflict(new
+        {
+            message = result.Message
+        });
+    }
+
+    // Return the newly created staff account.
+    return CreatedAtAction(
+        nameof(GetUser),
+        new { nic = user.NIC },
+        result.User
+    );
+}
+
+    [Authorize]
+[HttpGet("{nic}")]
+public async Task<IActionResult> GetUser(string nic)
+{
+    // Get the NIC of the currently authenticated user from the JWT token.
+    var loggedInNIC = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+    // Check whether the logged-in user is a Backoffice user.
+    var isBackoffice = User.IsInRole("BACKOFFICE");
+
+    // Non-Backoffice users can only access their own profile.
+    if (!isBackoffice && loggedInNIC != nic)
+    {
+        return Forbid();
+    }
+
+    // Retrieve the requested user from the database.
+    var user = await _userService.GetByNICAsync(nic);
+
+    // Return 404 if the requested user does not exist.
+    if (user == null)
+    {
+        return NotFound(new { message = "User not found." });
+    }
+
+    // Do not expose the password hash in the API response.
+    user.PasswordHash = string.Empty;
+
+    return Ok(user);
+}
+
+
+[Authorize(Roles = "BACKOFFICE")]
+[HttpGet("pending")]
+public async Task<IActionResult> GetPendingUsers()
+{
+    // Retrieve all accounts waiting for Backoffice activation.
+    var users = await _userService.GetPendingUsersAsync();
+
+    // Hide password hashes before returning the users.
+    foreach (var user in users)
+    {
+        user.PasswordHash = string.Empty;
+    }
+
+    return Ok(users);
+}
+
+
+[Authorize(Roles = "BACKOFFICE")]
+[HttpPatch("{nic}/deactivate")]
+public async Task<IActionResult> DeactivateUser(string nic)
+{
+    // Deactivate the selected user account.
+    var result = await _userService.DeactivateUserAsync(nic);
+
+    // Return 404 if the user does not exist.
+    if (!result.Success && result.Message == "User not found.")
+    {
+        return NotFound(new { message = result.Message });
+    }
+
+    // Return a successful response when the account is deactivated.
+    return Ok(new { message = result.Message });
+}
+
+[Authorize(Roles = "BACKOFFICE")]
+[HttpPatch("{nic}/reactivate")]
+public async Task<IActionResult> ReactivateUser(string nic)
+{
+    // Reactivate the selected user account.
+    var result = await _userService.ReactivateUserAsync(nic);
+
+    // Return 404 if the user does not exist.
+    if (!result.Success && result.Message == "User not found.")
+    {
+        return NotFound(new { message = result.Message });
+    }
+
+    // Return a successful response when the account is reactivated.
+    return Ok(new { message = result.Message });
+}
+
+[Authorize(Roles = "BACKOFFICE")]
+[HttpPatch("{nic}/activate")]
+public async Task<IActionResult> ActivateUser(string nic)
+{
+    // Activate the selected pending user account.
+    var result = await _userService.ActivateUserAsync(nic);
+
+    if (!result.Success)
+    {
+        if (result.Message == "User not found.")
+        {
+            return NotFound(new { message = result.Message });
+        }
+
+        return BadRequest(new { message = result.Message });
+    }
+
+    return Ok(new { message = result.Message });
+}
+
+    [Authorize(Roles = "BACKOFFICE")]
+    [HttpGet("backoffice-test")]
+    public IActionResult BackofficeTest()
 {
     return Ok(new
     {
