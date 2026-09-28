@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { reservationsApi, stationsApi, usersApi } from '../../../api.js';
 import { formatDateTime, formatLongDate, formatMonth, formatTimeRange, initials } from '../format';
 import { useNow, useStationSlots } from '../hooks';
-import { createReservation, getProsumer } from '../mockReservationApi';
 import { SEVEN_DAYS_MS } from '../reservationRules';
+import { ensureStoredSlot } from '../storedSlot';
 import SlotPicker from './SlotPicker';
 import StationPicker from './StationPicker';
 import {
@@ -21,7 +22,7 @@ import {
 
 const IDLE = { status: 'idle', prosumer: null, error: null };
 
-export default function CreateBooking({ refData, onBack, onCreated }) {
+export default function CreateBooking({ onBack, onCreated }) {
   const now = useNow();
   const [nicInput, setNicInput] = useState('');
   const [verification, setVerification] = useState(IDLE);
@@ -30,15 +31,62 @@ export default function CreateBooking({ refData, onBack, onCreated }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [slotRefresh, setSlotRefresh] = useState(0);
+  const [stations, setStations] = useState([]);
+  const [stationsReady, setStationsReady] = useState(false);
+  const [stationsError, setStationsError] = useState(null);
+  const [prosumerOptions, setProsumerOptions] = useState([]);
 
-  const { slots, loading: slotsLoading } = useStationSlots(stationId, slotRefresh);
+  const {
+    slots,
+    schedules,
+    loading: slotsLoading,
+    error: slotsError,
+  } = useStationSlots(stationId, slotRefresh);
+
+  useEffect(() => {
+    let active = true;
+
+    stationsApi
+      .list()
+      .then((data) => {
+        if (!active) return;
+        setStations(Array.isArray(data) ? data : []);
+        setStationsReady(true);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setStationsError(err);
+        setStationsReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    usersApi
+      .listProsumers()
+      .then((data) => {
+        if (active) setProsumerOptions(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        if (active) setProsumerOptions([]);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const prosumer = verification.prosumer;
   const prosumerActive = prosumer?.accountStatus === 'ACTIVE';
-  const station = refData.stationById.get(stationId);
+  const station = stations.find((item) => item.id === stationId);
   const slot = slots.find((item) => item.id === slotId);
   const remaining = slot ? slot.maximumBookings - slot.reservedBookings : null;
-  const activeStations = refData.stations.filter((item) => item.isActive).length;
+  const activeStations = stations.filter((item) => item.isActive).length;
 
   const canSubmit = prosumerActive && station && slot && !submitting;
 
@@ -54,7 +102,7 @@ export default function CreateBooking({ refData, onBack, onCreated }) {
     setVerification({ status: 'checking', prosumer: null, error: null });
 
     try {
-      setVerification({ status: 'done', prosumer: await getProsumer(nic), error: null });
+      setVerification({ status: 'done', prosumer: await usersApi.getBookingProfile(nic), error: null });
     } catch (err) {
       setVerification({ status: 'error', prosumer: null, error: err });
     }
@@ -74,8 +122,20 @@ export default function CreateBooking({ refData, onBack, onCreated }) {
     setError(null);
 
     try {
-      const summary = await createReservation({ prosumerId: prosumer.nic, stationId, slotId });
-      onCreated(summary);
+      const realSlotId = await ensureStoredSlot(stationId, slot);
+      const summary = await reservationsApi.create({
+        prosumerId: prosumer.nic,
+        stationId,
+        slotId: realSlotId,
+      });
+      onCreated({
+        ...summary,
+        display: {
+          prosumerName: prosumer.name,
+          stationName: station.name,
+          stationAddress: station.address,
+        },
+      });
     } catch (err) {
       setError(err);
       setSubmitting(false);
@@ -157,7 +217,7 @@ export default function CreateBooking({ refData, onBack, onCreated }) {
                 </button>
               </div>
               <datalist id="rm-prosumer-options">
-                {refData.prosumers.map((item) => (
+                {prosumerOptions.map((item) => (
                   <option key={item.nic} value={item.nic}>
                     {item.name}
                   </option>
@@ -210,14 +270,17 @@ export default function CreateBooking({ refData, onBack, onCreated }) {
               title="Select station"
               aside={<span className="rm-muted">{activeStations} active stations</span>}
             />
-            {refData.ready ? (
+            {!stationsReady && <Spinner label="Loading stations…" />}
+            {stationsReady && stationsError && <ErrorNotice error={stationsError} />}
+            {stationsReady && !stationsError && stations.length === 0 && (
+              <p className="rm-empty">No stations are available yet.</p>
+            )}
+            {stationsReady && !stationsError && stations.length > 0 && (
               <StationPicker
-                stations={refData.stations}
+                stations={stations}
                 selectedId={stationId}
                 onSelect={handleStationChange}
               />
-            ) : (
-              <Spinner />
             )}
           </section>
 
@@ -234,11 +297,13 @@ export default function CreateBooking({ refData, onBack, onCreated }) {
             />
             {!station && <p className="rm-empty">Choose a station to see its energy slots.</p>}
             {station && slotsLoading && <Spinner label="Loading slots…" />}
-            {station && !slotsLoading && (
+            {station && !slotsLoading && slotsError && <ErrorNotice error={slotsError} />}
+            {station && !slotsLoading && !slotsError && (
               <SlotPicker
                 key={stationId}
                 station={station}
                 slots={slots}
+                schedules={schedules}
                 selectedSlotId={slotId}
                 onSelect={(item) => {
                   setSlotId(item.id);

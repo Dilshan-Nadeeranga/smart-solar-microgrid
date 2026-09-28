@@ -17,6 +17,58 @@ public class UserController : ControllerBase
     }
 
 
+    [AllowAnonymous]
+    [HttpGet("prosumers")]
+    public async Task<IActionResult> ListProsumers()
+    {
+        var users = await _userService.GetAllAsync();
+
+        var prosumers = users
+            .Where(user => user.Role == Role.PROSUMER)
+            .Select(user => new
+            {
+                nic = user.NIC,
+                name = user.Name,
+                address = user.Address,
+                accountStatus = user.AccountStatus.ToString()
+            });
+
+        return Ok(prosumers);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("{nic}/booking")]
+    public async Task<IActionResult> GetBookingProfile(string nic)
+    {
+        if (string.IsNullOrWhiteSpace(nic))
+        {
+            return BadRequest(new { message = "NIC is required." });
+        }
+
+        var user = await _userService.GetByNICAsync(nic.Trim());
+
+        if (user is null)
+        {
+            return NotFound(new { message = "Prosumer account not found." });
+        }
+
+        if (user.Role != Role.PROSUMER)
+        {
+            return BadRequest(new
+            {
+                message = "Reservations can only be created for prosumer accounts."
+            });
+        }
+
+        return Ok(new
+        {
+            nic = user.NIC,
+            name = user.Name,
+            address = user.Address,
+            accountStatus = user.AccountStatus.ToString()
+        });
+    }
+
     [Authorize(Roles = "BACKOFFICE")]
 [HttpPost]
 public async Task<IActionResult> CreateUser([FromBody] CreateUserRequest request)

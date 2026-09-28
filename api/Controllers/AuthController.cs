@@ -23,7 +23,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(new
             {
-                message = "NIC and password are required."
+                message = "NIC or email and password are required."
             });
         }
 

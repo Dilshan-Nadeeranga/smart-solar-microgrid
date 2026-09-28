@@ -20,10 +20,11 @@ export default function LoginPage() {
       
       // Redirect based on role
       if (user.role === 'BACKOFFICE') {
-        navigate('/dashboard/account');
+        navigate('/dashboard');
+      } else if (user.role === 'GRID_OPERATOR') {
+        navigate('/reservations');
       } else {
-        // Both GRID_OPERATOR and PROSUMER will go to their profile area
-        navigate('/profile');
+        navigate('/dashboard/stations');
       }
     } catch (err) {
       setError(err.message || 'Login failed');
@@ -40,7 +41,9 @@ export default function LoginPage() {
             <span className="material-symbols-outlined text-[28px] text-on-primary-container">sunny</span>
           </div>
           <h1 className="text-2xl font-bold text-on-surface">Smart Solar Microgrid</h1>
-          <p className="mt-2 text-sm text-secondary">Sign in to your account</p>
+          <p className="mt-2 text-sm text-secondary">
+            Sign in as Backoffice to create Backoffice and Grid Operator users.
+          </p>
         </div>
 
         {error && (
@@ -51,11 +54,13 @@ export default function LoginPage() {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           <div>
-            <label className="mb-1 block text-sm font-medium text-on-surface">NIC</label>
+            <label className="mb-1 block text-sm font-medium text-on-surface">NIC or email</label>
             <input
               type="text"
               value={nic}
               onChange={(e) => setNic(e.target.value)}
+              placeholder="NIC or email"
+              autoComplete="username"
               className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-2 text-on-surface focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
               required
               disabled={loading}

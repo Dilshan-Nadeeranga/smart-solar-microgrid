@@ -41,7 +41,7 @@ export async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new ApiError('Session expired. Please login again.', 401, data)
+      throw new ApiError(data?.message || 'Session expired. Please login again.', 401, data)
     }
     if (response.status === 403) {
       throw new ApiError('You do not have permission to perform this action.', 403, data)
@@ -67,6 +67,8 @@ export const usersApi = {
   activate: (nic) => request(`/users/${nic}/activate`, { method: 'PATCH' }),
   deactivate: (nic) => request(`/users/${nic}/deactivate`, { method: 'PATCH' }),
   reactivate: (nic) => request(`/users/${nic}/reactivate`, { method: 'PATCH' }),
+  listProsumers: () => request('/users/prosumers'),
+  getBookingProfile: (nic) => request(`/users/${encodeURIComponent(nic)}/booking`),
 }
 
 export const stationsApi = {
@@ -96,4 +98,20 @@ export const stationsApi = {
       body: JSON.stringify(body),
     }),
   getSlot: (id) => request(`/booking-slots/${id}`),
+}
+
+export const reservationsApi = {
+  list: () => request('/reservations/desk?pageSize=100'),
+  get: (id) => request(`/reservations/desk/${encodeURIComponent(id)}`),
+  create: (body) => request('/reservations/desk', { method: 'POST', body: JSON.stringify(body) }),
+  update: (id, body) =>
+    request(`/reservations/desk/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      body: JSON.stringify(body),
+    }),
+  cancel: (id, body) =>
+    request(`/reservations/desk/${encodeURIComponent(id)}/cancel`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 }

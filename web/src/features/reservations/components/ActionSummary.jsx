@@ -43,8 +43,14 @@ export default function ActionSummary({
 }) {
   const config = ACTIONS[action];
   const reservation = summary.reservation;
-  const station = refData.stationById.get(reservation.stationId);
-  const prosumer = refData.prosumerByNic.get(reservation.prosumerId);
+  const station = refData.stationById.get(reservation.stationId) ?? (
+    summary.display
+      ? { name: summary.display.stationName, address: summary.display.stationAddress }
+      : undefined
+  );
+  const prosumer = refData.prosumerByNic.get(reservation.prosumerId) ?? (
+    summary.display ? { name: summary.display.prosumerName } : undefined
+  );
   const previousReservation = previous?.reservation;
   const previousStation = previousReservation && refData.stationById.get(previousReservation.stationId);
   const wasApproved = action === 'updated' && previousReservation?.status === 'Approved';
