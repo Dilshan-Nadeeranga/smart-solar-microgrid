@@ -53,6 +53,22 @@ public class ReservationMonitoringController : ControllerBase
         Run(() => _monitoringService.GetAllAsync(User, query));
 
     /// <summary>
+    /// PATCH /api/reservations/desk/{id}/approve — approve a prosumer booking from the web desk.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPatch("desk/{id}/approve")]
+    public Task<IActionResult> ApproveFromDesk(string id, [FromBody] ReservationActionRequest? body) =>
+        Run(() => _monitoringService.ApproveAsync(id, DeskActor.Create(), body?.Version));
+
+    /// <summary>
+    /// PATCH /api/reservations/desk/{id}/reject — reject a prosumer booking from the web desk.
+    /// </summary>
+    [AllowAnonymous]
+    [HttpPatch("desk/{id}/reject")]
+    public Task<IActionResult> RejectFromDesk(string id, [FromBody] ReservationActionRequest? body) =>
+        Run(() => _monitoringService.RejectAsync(id, DeskActor.Create(), body?.Version));
+
+    /// <summary>
     /// PATCH /api/reservations/{id}/approve — approve a pending reservation.
     /// </summary>
     [HttpPatch("{id}/approve")]

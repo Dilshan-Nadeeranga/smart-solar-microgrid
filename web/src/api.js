@@ -103,4 +103,14 @@ export const reservationsApi = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
+  approve: (id, body) =>
+    request(`/reservations/desk/${encodeURIComponent(id)}/approve`, {
+      method: 'PATCH',
+      body: JSON.stringify(body ?? {}),
+    }),
+  reject: (id, body) =>
+    request(`/reservations/desk/${encodeURIComponent(id)}/reject`, {
+      method: 'PATCH',
+      body: JSON.stringify(body ?? {}),
+    }),
 }

@@ -73,10 +73,62 @@ function CancelDialog({ reservation, stationName, onKeep, onConfirmed }) {
   );
 }
 
+function RejectDialog({ reservation, stationName, onKeep, onConfirmed }) {
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function handleConfirm() {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const summary = await reservationsApi.reject(reservation.id, { version: reservation.version });
+      onConfirmed(summary);
+    } catch (err) {
+      setError(err);
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="rm-dialog-backdrop" role="presentation">
+      <div className="rm-dialog" role="dialog" aria-modal="true" aria-labelledby="rm-reject-title">
+        <span className="rm-dialog__icon">
+          <Icon name="cancel" />
+        </span>
+        <h2 id="rm-reject-title">Reject this booking?</h2>
+        <p className="rm-muted">
+          {stationName} · {formatLongDate(reservation.slotStartTimeUtc)},{' '}
+          {formatTimeRange(reservation.slotStartTimeUtc, reservation.slotEndTimeUtc)}
+        </p>
+        <ul className="rm-bullets">
+          <li>The booking status changes to Rejected.</li>
+          <li>Its space in the slot is released.</li>
+          <li>The prosumer is not given this energy slot.</li>
+        </ul>
+        <ErrorNotice error={error} />
+        <div className="rm-dialog__actions">
+          <button type="button" className="rm-button rm-button--ghost" onClick={onKeep} disabled={submitting}>
+            Keep pending
+          </button>
+          <button type="button" className="rm-button rm-button--danger" onClick={handleConfirm} disabled={submitting}>
+            {submitting ? 'Rejecting…' : 'Reject booking'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ReservationDetails({ reservationId, refData, onBack, onEdit, onCancelled }) {
   const now = useNow();
   const [confirming, setConfirming] = useState(false);
-  const { summary, error, loading } = useReservation(reservationId);
+  const [rejecting, setRejecting] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [deciding, setDeciding] = useState(false);
+  const [decisionError, setDecisionError] = useState(null);
+  const [decisionMessage, setDecisionMessage] = useState(null);
+  const { summary, error, loading } = useReservation(reservationId, reloadKey);
 
   if (loading || error) {
     return (
@@ -88,7 +140,24 @@ export default function ReservationDetails({ reservationId, refData, onBack, onE
   }
 
   const reservation = summary.reservation;
+  const pending = reservation.status === 'Pending';
   const station = refData.stationById.get(reservation.stationId);
+
+  async function handleApprove() {
+    setDeciding(true);
+    setDecisionError(null);
+    setDecisionMessage(null);
+
+    try {
+      const result = await reservationsApi.approve(reservation.id, { version: reservation.version });
+      setDecisionMessage(result.message || 'Reservation approved.');
+      setReloadKey((value) => value + 1);
+    } catch (err) {
+      setDecisionError(err);
+    } finally {
+      setDeciding(false);
+    }
+  }
   const prosumer = refData.prosumerByNic.get(reservation.prosumerId);
   const changeWindow = modificationWindow(reservation, now);
   const untilStart = new Date(reservation.slotStartTimeUtc).getTime() - now;
@@ -142,6 +211,41 @@ export default function ReservationDetails({ reservationId, refData, onBack, onE
           <div className="rm-panel">
             <PanelHeader eyebrow="Manage" title="Actions" icon="tune" />
 
+            {pending && (
+              <Notice tone="warning" title="Waiting for approval">
+                This booking came from the prosumer app. Approve it or reject it and release the slot.
+              </Notice>
+            )}
+            {decisionMessage && (
+              <Notice tone="success" title="Updated">
+                {decisionMessage}
+              </Notice>
+            )}
+            <ErrorNotice error={decisionError} />
+
+            {pending && (
+              <>
+                <button
+                  type="button"
+                  className="rm-button rm-button--primary rm-button--block rm-button--lg"
+                  disabled={deciding}
+                  onClick={handleApprove}
+                >
+                  <Icon name="check" />
+                  {deciding ? 'Approving…' : 'Approve booking'}
+                </button>
+                <button
+                  type="button"
+                  className="rm-button rm-button--danger-outline rm-button--block"
+                  disabled={deciding}
+                  onClick={() => setRejecting(true)}
+                >
+                  <Icon name="close" />
+                  Reject booking
+                </button>
+              </>
+            )}
+
             {changeWindow.allowed ? (
               <Notice tone="info" title="Changes allowed">
                 Can be changed or cancelled until {formatDateTime(changeWindow.deadline)} (
@@ -188,6 +292,20 @@ export default function ReservationDetails({ reservationId, refData, onBack, onE
           stationName={station?.name ?? 'Station'}
           onKeep={() => setConfirming(false)}
           onConfirmed={(result) => onCancelled(result, summary)}
+        />
+      )}
+
+      {rejecting && (
+        <RejectDialog
+          reservation={reservation}
+          stationName={station?.name ?? 'Station'}
+          onKeep={() => setRejecting(false)}
+          onConfirmed={(result) => {
+            setRejecting(false);
+            setDecisionError(null);
+            setDecisionMessage(result.message || 'Reservation rejected.');
+            setReloadKey((value) => value + 1);
+          }}
         />
       )}
     </div>
