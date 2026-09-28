@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { stationsApi } from '../../../api.js'
 
@@ -46,6 +46,29 @@ function stationToForm(station) {
   }
 }
 
+const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+function clock(value) {
+  if (!value) return '00:00:00'
+  const text = String(value)
+  if (text.length >= 8) return text.slice(0, 8)
+  return `${text}:00`.slice(0, 8)
+}
+
+function mergeWeek(existing) {
+  return days.map((day) => {
+    const matches = (existing || []).filter((item) => item.day === day)
+    const first = matches[0]
+    return {
+      day,
+      ids: matches.map((item) => item.id).filter(Boolean),
+      openingTime: clock(first?.openingTime || '08:00:00'),
+      closingTime: clock(first?.closingTime || '17:00:00'),
+      isAvailable: first ? Boolean(first.isAvailable) : true,
+    }
+  })
+}
+
 function fieldClass() {
   return 'h-11 w-full rounded-lg bg-surface-container-lowest px-3.5 text-body-sm text-on-surface shadow-sm outline-none focus:ring-2 focus:ring-primary-container'
 }
@@ -56,9 +79,12 @@ export default function StationsPage() {
   const [selectedId, setSelectedId] = useState('')
   const [showEdit, setShowEdit] = useState(false)
   const [editForm, setEditForm] = useState(emptyStation)
+  const [schedules, setSchedules] = useState(() => mergeWeek([]))
+  const [editingDay, setEditingDay] = useState('')
   const [notice, setNotice] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const openRequest = useRef(0)
 
   const visibleStations = useMemo(() => {
     const text = query.trim().toLowerCase()
@@ -82,11 +108,23 @@ export default function StationsPage() {
     return data.find((station) => station.id === keepId) ? keepId : data[0]?.id || ''
   }
 
+  function updateSchedule(day, patch) {
+    setSchedules((current) => current.map((item) => (item.day === day ? { ...item, ...patch } : item)))
+  }
+
   async function openStation(id, { edit = false } = {}) {
+    const request = ++openRequest.current
     setSelectedId(id)
     setShowEdit(edit)
+    setEditingDay('')
     const station = await stationsApi.get(id)
+    if (request !== openRequest.current) return
     setEditForm(stationToForm(station))
+    if (edit) {
+      const rows = await stationsApi.schedules(id)
+      if (request !== openRequest.current) return
+      setSchedules(mergeWeek(rows))
+    }
   }
 
   useEffect(() => {
@@ -104,9 +142,34 @@ export default function StationsPage() {
       toast('error', error)
       return
     }
+    const prepared = schedules.map((item) => ({
+      ...item,
+      openingTime: clock(item.openingTime),
+      closingTime: clock(item.closingTime),
+    }))
+    const invalid = prepared.find((item) => item.closingTime <= item.openingTime)
+    if (invalid) {
+      toast('error', `Closing time must be after opening time for ${invalid.day}.`)
+      return
+    }
     setLoading(true)
     try {
       await stationsApi.update(selectedId, toStationBody(editForm))
+      for (const item of prepared) {
+        const body = {
+          day: item.day,
+          openingTime: item.openingTime,
+          closingTime: item.closingTime,
+          isAvailable: item.isAvailable,
+        }
+        if (item.ids.length === 0) {
+          await stationsApi.createSchedule(selectedId, body)
+        } else {
+          for (const scheduleId of item.ids) {
+            await stationsApi.updateSchedule(selectedId, scheduleId, body)
+          }
+        }
+      }
       await loadStations(selectedId)
       setShowEdit(false)
       toast('ok', 'Station updated.')
@@ -323,7 +386,7 @@ export default function StationsPage() {
                     </div>
                     <div>
                       <h2 className="font-headline-md text-headline-md font-semibold">Edit station</h2>
-                      <p className="text-secondary">Update station details or deactivate it.</p>
+                      <p className="text-secondary">Update station details, weekly hours, or deactivate it.</p>
                     </div>
                   </div>
                   <button
@@ -361,6 +424,89 @@ export default function StationsPage() {
                       <span className="text-label-md font-semibold">Battery slots</span>
                       <input className={fieldClass()} type="number" value={editForm.batteryStorageSlots} onChange={(event) => setEditForm({ ...editForm, batteryStorageSlots: event.target.value })} />
                     </label>
+                  </div>
+                  <div className="flex flex-col gap-4 border-t border-outline-variant/20 pt-5">
+                    <div>
+                      <h3 className="flex items-center gap-2 font-headline-md text-headline-md font-semibold">
+                        <span className="material-symbols-outlined text-[22px] text-secondary">calendar_today</span>
+                        Weekly schedule
+                      </h3>
+                      <p className="text-secondary">Use edit to change a day. Save changes stores the full week.</p>
+                    </div>
+                    <div className="overflow-x-auto rounded-xl bg-surface-container-low">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="bg-surface-container text-label-sm uppercase tracking-wider text-secondary">
+                            <th className="px-4 py-3">Day</th>
+                            <th className="px-4 py-3">Opening</th>
+                            <th className="px-4 py-3">Closing</th>
+                            <th className="px-4 py-3">Available</th>
+                            <th className="px-4 py-3 text-right">Edit</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant/10">
+                          {schedules.map((schedule) => {
+                            const editing = editingDay === schedule.day
+                            return (
+                              <tr key={schedule.day}>
+                                <td className="px-4 py-3 font-semibold">{schedule.day}</td>
+                                <td className="px-4 py-3">
+                                  {editing ? (
+                                    <input
+                                      className={fieldClass()}
+                                      aria-label={`${schedule.day} opening`}
+                                      value={schedule.openingTime}
+                                      onChange={(event) => updateSchedule(schedule.day, { openingTime: event.target.value })}
+                                    />
+                                  ) : (
+                                    clock(schedule.openingTime)
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {editing ? (
+                                    <input
+                                      className={fieldClass()}
+                                      aria-label={`${schedule.day} closing`}
+                                      value={schedule.closingTime}
+                                      onChange={(event) => updateSchedule(schedule.day, { closingTime: event.target.value })}
+                                    />
+                                  ) : (
+                                    clock(schedule.closingTime)
+                                  )}
+                                </td>
+                                <td className="px-4 py-3">
+                                  {editing ? (
+                                    <select
+                                      className={fieldClass()}
+                                      aria-label={`${schedule.day} available`}
+                                      value={schedule.isAvailable ? 'yes' : 'no'}
+                                      onChange={(event) => updateSchedule(schedule.day, { isAvailable: event.target.value === 'yes' })}
+                                    >
+                                      <option value="yes">Yes</option>
+                                      <option value="no">No</option>
+                                    </select>
+                                  ) : (
+                                    <span className={`rounded-full px-2.5 py-0.5 text-label-sm font-semibold ${schedule.isAvailable ? 'bg-[#DCFCE7] text-[#15803D]' : 'bg-surface-container text-secondary'}`}>
+                                      {schedule.isAvailable ? 'Yes' : 'No'}
+                                    </span>
+                                  )}
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <button
+                                    type="button"
+                                    aria-label={editing ? `Done editing ${schedule.day}` : `Edit ${schedule.day}`}
+                                    onClick={() => setEditingDay(editing ? '' : schedule.day)}
+                                    className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary-container text-on-primary-container"
+                                  >
+                                    <span className="material-symbols-outlined text-[18px]">{editing ? 'check' : 'edit'}</span>
+                                  </button>
+                                </td>
+                              </tr>
+                            )
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                   <div className="flex flex-wrap items-center justify-between gap-4 border-t border-outline-variant/20 pt-4">
                     <button
