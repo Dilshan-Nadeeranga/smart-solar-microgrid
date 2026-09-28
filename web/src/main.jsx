@@ -16,7 +16,6 @@ import SlotLookupPage from './features/stations/components/SlotLookupPage.jsx'
 import CreateStationPage from './features/stations/components/CreateStationPage.jsx'
 import DashboardPage from './features/stations/components/DashboardPage.jsx'
 import StationsPage from './features/stations/components/StationsPage.jsx'
-import WeeklySchedulePage from './features/stations/components/WeeklySchedulePage.jsx'
 import './index.css'
 
 createRoot(document.getElementById('root')).render(
@@ -26,10 +25,10 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
-          
+
           <Route element={<ProtectedRoute />}>
             <Route element={<App />}>
-              
+
               <Route element={<ProtectedRoute roles={['BACKOFFICE']} />}>
                 <Route path="/dashboard/users">
                   <Route index element={<UserManagementPage />} />
@@ -49,9 +48,13 @@ createRoot(document.getElementById('root')).render(
                 <Route path="slot-lookup" element={<SlotLookupPage />} />
               </Route>
               <Route path="/reservations/*" element={<ReservationsModule />} />
-              
+
               <Route path="*" element={<Navigate to="/dashboard/stations" replace />} />
             </Route>
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
           </Route>
           
         </Routes>

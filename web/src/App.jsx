@@ -26,7 +26,6 @@ const getLinks = (role) => {
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
-  // Default fallback if no role (though should be protected)
   return [
     { to: '/dashboard', label: 'Dashboard', end: true },
     { to: '/dashboard/stations', label: 'Stations', end: false },
@@ -40,7 +39,6 @@ const crumbs = {
   '/dashboard': 'Dashboard',
   '/dashboard/stations': 'Stations',
   '/dashboard/stations/create': 'Create station',
-  '/dashboard/weekly-schedule': 'Schedule',
   '/dashboard/slot-lookup': 'Slot lookup',
   '/dashboard/users': 'User Management',
   '/dashboard/users/pending': 'Pending Activations',
