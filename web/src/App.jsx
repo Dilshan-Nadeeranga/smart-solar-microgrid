@@ -16,6 +16,7 @@ const getLinks = (role) => {
       { to: '/dashboard/users', label: 'User Management', end: true },
       { to: '/dashboard/users/pending', label: 'Pending Activations', end: true },
       { to: '/dashboard/users/create-prosumer', label: 'Create Prosumer', end: true },
+      { to: '/bookings', label: 'Bookings', end: false },
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
@@ -26,6 +27,7 @@ const getLinks = (role) => {
       { to: '/reservations/new', label: 'Create reservations', end: true, nested: true },
       { to: '/reservations', label: 'All reservations', end: true, nested: true, match: 'all-reservations' },
       { to: '/reservations/pending', label: 'Pending reservations', end: true, nested: true },
+      { to: '/bookings', label: 'Bookings', end: false },
       { to: '/profile', label: 'My Profile', end: true },
     ]
   }
@@ -173,7 +175,8 @@ export default function App() {
             </span>
             <span className="hidden text-outline-variant sm:inline">/</span>
             <span className="text-label-md font-semibold text-on-surface">
-              {reservationCrumb(pathname) || crumbs[pathname] || 'Dashboard'}
+              {reservationCrumb(pathname) ||
+                (pathname.startsWith('/bookings') ? 'Bookings' : crumbs[pathname] || 'Dashboard')}
             </span>
           </div>
           <div className="flex items-center gap-4">
