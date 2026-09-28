@@ -28,7 +28,7 @@ async function request(path, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401) {
-      throw new Error('Session expired. Please login again.')
+      throw new Error(data?.message || 'Session expired. Please login again.')
     }
     if (response.status === 403) {
       throw new Error('You do not have permission to perform this action.')
@@ -56,6 +56,8 @@ export const usersApi = {
   activate: (nic) => request(`/users/${nic}/activate`, { method: 'PATCH' }),
   deactivate: (nic) => request(`/users/${nic}/deactivate`, { method: 'PATCH' }),
   reactivate: (nic) => request(`/users/${nic}/reactivate`, { method: 'PATCH' }),
+  listProsumers: () => request('/users/prosumers'),
+  getBookingProfile: (nic) => request(`/users/${encodeURIComponent(nic)}/booking`),
 }
 
 export const stationsApi = {
@@ -101,9 +103,4 @@ export const reservationsApi = {
       method: 'PATCH',
       body: JSON.stringify(body),
     }),
-}
-
-export const usersApi = {
-  listProsumers: () => request('/users/prosumers'),
-  getBookingProfile: (nic) => request(`/users/${encodeURIComponent(nic)}/booking`),
 }

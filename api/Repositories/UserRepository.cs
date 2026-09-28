@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using SolarGrid.Api.Data;
 using SolarGrid.Api.Models;
@@ -17,6 +19,14 @@ public class UserRepository
     {
         return await _users
             .Find(user => user.NIC == nic)
+            .FirstOrDefaultAsync();
+    }
+
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        var pattern = new BsonRegularExpression($"^{Regex.Escape(email.Trim())}$", "i");
+        return await _users
+            .Find(Builders<User>.Filter.Regex(user => user.Email, pattern))
             .FirstOrDefaultAsync();
     }
 
