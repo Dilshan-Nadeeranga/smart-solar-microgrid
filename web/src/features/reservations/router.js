@@ -1,23 +1,34 @@
-import { useMemo, useSyncExternalStore } from 'react';
+import { useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 
 export const BASE_PATH = '/reservations';
 
-const NAVIGATE_EVENT = 'rm:navigate';
 const SUMMARY_ACTIONS = ['created', 'updated', 'cancelled'];
+
+let routerNavigate = null;
+
+export function bindRouter(navigate) {
+  routerNavigate = navigate;
+}
 
 export const paths = {
   home: () => BASE_PATH,
   create: () => `${BASE_PATH}/new`,
+  pending: () => `${BASE_PATH}/pending`,
   details: (id) => `${BASE_PATH}/${encodeURIComponent(id)}`,
   edit: (id) => `${BASE_PATH}/${encodeURIComponent(id)}/edit`,
   summary: (id, action) => `${BASE_PATH}/${encodeURIComponent(id)}/${action}`,
 };
 
 export function navigate(path, { state = null, replace = false } = {}) {
-  if (replace) window.history.replaceState(state, '', path);
-  else window.history.pushState(state, '', path);
+  if (routerNavigate) {
+    routerNavigate(path, { state, replace });
+  } else if (replace) {
+    window.history.replaceState(state, '', path);
+  } else {
+    window.history.pushState(state, '', path);
+  }
 
-  window.dispatchEvent(new Event(NAVIGATE_EVENT));
   window.scrollTo({ top: 0 });
 }
 
@@ -39,6 +50,7 @@ export function matchRoute(pathname, state) {
 
   if (parts.length === 0) return { name: 'home' };
   if (parts.length === 1 && parts[0] === 'new') return { name: 'create' };
+  if (parts.length === 1 && parts[0] === 'pending') return { name: 'pending' };
 
   const [id, sub] = parts;
 
@@ -57,19 +69,11 @@ export function matchRoute(pathname, state) {
   return { name: 'notFound' };
 }
 
-function subscribe(callback) {
-  window.addEventListener('popstate', callback);
-  window.addEventListener(NAVIGATE_EVENT, callback);
-
-  return () => {
-    window.removeEventListener('popstate', callback);
-    window.removeEventListener(NAVIGATE_EVENT, callback);
-  };
-}
-
 export function useRoute() {
-  const pathname = useSyncExternalStore(subscribe, () => window.location.pathname);
-  const state = useSyncExternalStore(subscribe, () => window.history.state);
+  const location = useLocation();
 
-  return useMemo(() => matchRoute(pathname, state), [pathname, state]);
+  return useMemo(
+    () => matchRoute(location.pathname, location.state),
+    [location.pathname, location.state, location.key],
+  );
 }

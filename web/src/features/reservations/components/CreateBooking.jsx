@@ -153,11 +153,11 @@ export default function CreateBooking({ onBack, onCreated }) {
         onBack={onBack}
         backLabel="Reservations"
         eyebrow="New booking"
-        title="Book an energy slot"
+        title="Create reservations"
         description={
           <>
-            Booking on behalf of a prosumer. The reservation is saved as <strong>Pending</strong>{' '}
-            until a Backoffice user approves it.
+            Booking on behalf of a prosumer. This reservation is <strong>approved immediately</strong>.
+            Bookings the prosumer makes in the mobile app stay pending until you approve them.
           </>
         }
         aside={
@@ -347,7 +347,7 @@ export default function CreateBooking({ onBack, onCreated }) {
 
             <div className="rm-panel__status">
               <span className="rm-muted">Status after booking</span>
-              <StatusBadge status="Pending" label="Pending approval" />
+              <StatusBadge status="Approved" label="Approved" />
             </div>
 
             <ErrorNotice error={error} />
