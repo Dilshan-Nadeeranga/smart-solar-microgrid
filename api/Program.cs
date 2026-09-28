@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using DotNetEnv;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using SolarGrid.Api.Data;
@@ -26,6 +27,15 @@ var mongoSettings = new MongoDbSettings
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
     ?? throw new InvalidOperationException("JWT_SECRET is missing from .env");
 
+// QR signing settings (Member 4). If QR_SECRET_KEY is missing the API still
+// starts, but the QR endpoints return an error until it is set.
+var qrOptions = new QrOptions
+{
+    SecretKey = Environment.GetEnvironmentVariable("QR_SECRET_KEY"),
+    ValidBeforeSlotStart = ReadMinutes("QR_VALID_BEFORE_START_MINUTES", 120),
+    ValidAfterSlotEnd = ReadMinutes("QR_VALID_AFTER_END_MINUTES", 0)
+};
+
 // Register MongoDB
 builder.Services.AddSingleton(mongoSettings);
 builder.Services.AddSingleton<MongoDbContext>();
@@ -35,12 +45,20 @@ builder.Services.AddSingleton<IMongoDatabase>(sp =>
 // Register repositories
 builder.Services.AddSingleton<UserRepository>();
 builder.Services.AddSingleton<ReservationRepository>();
+builder.Services.AddSingleton<ReservationMonitoringRepository>();
 
 // Register services
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<StationService>();
 builder.Services.AddSingleton<ReservationService>();
+
+// Member 4: booking monitoring and QR verification
+builder.Services.TryAddSingleton(TimeProvider.System);
+builder.Services.AddSingleton(qrOptions);
+builder.Services.AddSingleton<IQrTokenService, QrTokenService>();
+builder.Services.AddSingleton<ReservationMonitoringService>();
+builder.Services.AddHostedService<ReservationIndexInitializer>();
 
 // Configure JWT authentication
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -105,6 +123,17 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddScoped<StationService>();
 var app = builder.Build();
 
+if (!qrOptions.IsConfigured)
+{
+    app.Logger.LogWarning(
+        "QR_SECRET_KEY is missing from .env. QR endpoints will return an error until it is set.");
+}
+else
+{
+    // Fails fast on a key that is too short.
+    app.Services.GetRequiredService<IQrTokenService>();
+}
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
@@ -121,3 +150,19 @@ app.UseAuthorization();
 app.MapControllers();
 
 app.Run();
+
+static TimeSpan ReadMinutes(string name, int defaultMinutes)
+{
+    var value = Environment.GetEnvironmentVariable(name);
+    if (string.IsNullOrWhiteSpace(value))
+    {
+        return TimeSpan.FromMinutes(defaultMinutes);
+    }
+
+    if (!int.TryParse(value, out var minutes) || minutes < 0)
+    {
+        throw new InvalidOperationException($"{name} in .env must be a whole number of minutes (0 or more).");
+    }
+
+    return TimeSpan.FromMinutes(minutes);
+}
