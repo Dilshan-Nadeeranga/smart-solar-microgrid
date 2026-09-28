@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 
 const NAV = [
+  { href: '#home', label: 'Home' },
   { href: '#how-it-works', label: 'How It Works' },
   { href: '#features', label: 'Features' },
   { href: '#mobile-app', label: 'Mobile App' },
@@ -16,24 +17,26 @@ const STATS = [
 ]
 
 const STEPS = [
-  { n: '01', title: 'Register', body: 'Connect in minutes via the mobile app using Sri Lankan NIC and verified CEB meter credentials.', icon: 'verified', foot: 'KYC & Meter Check' },
-  { n: '02', title: 'Reserve Slot', body: 'Select nearby microgrid substations and lock in an optimal energy feed window up to 7 days ahead.', icon: 'calendar_today', foot: '7-Day Forecasting' },
-  { n: '03', title: 'Get QR Pass', body: 'Receive a cryptographically signed one-time dispatch QR code instantly validated by grid automation.', icon: 'lock', foot: 'Encrypted Token', iconClass: 'text-teal-600' },
-  { n: '04', title: 'Transfer Energy', body: 'Authenticate transfer at the node terminal for seamless metered injection and automated CEB accounting.', icon: 'check_circle', foot: 'Automated Settlement', iconClass: 'text-teal-600' },
+  { n: '01', title: 'Register', mark: 'badge', body: 'Connect in minutes via the mobile app using Sri Lankan NIC and verified CEB meter credentials.', icon: 'verified', foot: 'KYC & Meter Check' },
+  { n: '02', title: 'Reserve Slot', mark: 'event_available', body: 'Select nearby microgrid substations and lock in an optimal energy feed window up to 7 days ahead.', icon: 'calendar_today', foot: '7-Day Forecasting' },
+  { n: '03', title: 'Get QR Pass', mark: 'qr_code_2', body: 'Receive a cryptographically signed one-time dispatch QR code instantly validated by grid automation.', icon: 'lock', foot: 'Encrypted Token', iconClass: 'text-teal-600' },
+  { n: '04', title: 'Transfer Energy', mark: 'bolt', body: 'Authenticate transfer at the node terminal for seamless metered injection and automated CEB accounting.', icon: 'check_circle', foot: 'Automated Settlement', iconClass: 'text-teal-600' },
 ]
 
 const ROLES = [
   {
     icon: 'smartphone',
+    hover: 'yellow',
     tone: 'bg-primary-container/20 text-primary border-primary-container/50',
     check: 'text-primary',
     title: 'Solar Prosumers',
     body: 'Residential solar system owners looking to reserve feed-in slots, monitor kW output, and earn energy credits easily via Android.',
     points: ['Simple 1-click slot booking', 'Dynamic secure QR pass', 'Battery SoC and infeed tracking'],
-    link: { href: '#mobile-app', label: 'Download Mobile App', className: 'text-primary' },
+    link: { href: '#mobile-app', label: 'Download Mobile App', cta: 'download' },
   },
   {
     icon: 'terminal',
+    hover: 'blue',
     tone: 'bg-blue-50 text-blue-700 border-blue-200',
     check: 'text-blue-600',
     title: 'Grid Operators',
@@ -43,6 +46,7 @@ const ROLES = [
   },
   {
     icon: 'shield_person',
+    hover: 'green',
     tone: 'bg-teal-50 text-teal-700 border-teal-200',
     check: 'text-teal-600',
     title: 'System Admin',
@@ -74,6 +78,19 @@ function Mark({ className = 'h-8 w-8' }) {
 }
 
 function RoleLink({ link }) {
+  if (link.cta === 'download') {
+    return (
+      <a
+        href={link.href}
+        className="inline-flex w-full items-center justify-between gap-3 rounded-full bg-primary-container py-2 pr-2 pl-5 text-sm font-bold text-on-surface shadow-sm transition hover:brightness-95"
+      >
+        {link.label}
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-on-surface text-primary-container">
+          <Icon name="arrow_downward" className="text-[20px]" />
+        </span>
+      </a>
+    )
+  }
   const className = `flex items-center gap-1.5 text-sm font-bold hover:brightness-90 ${link.className}`
   const content = (
     <>
@@ -81,17 +98,10 @@ function RoleLink({ link }) {
       <Icon name="arrow_forward" className="text-[16px]" />
     </>
   )
-  if (link.to) {
-    return (
-      <Link to={link.to} className={className}>
-        {content}
-      </Link>
-    )
-  }
   return (
-    <a href={link.href} className={className}>
+    <Link to={link.to} className={className}>
       {content}
-    </a>
+    </Link>
   )
 }
 
@@ -101,7 +111,7 @@ export default function HomePage() {
   }, [])
 
   return (
-    <div className="home-page relative min-h-screen overflow-x-hidden bg-surface text-on-surface antialiased selection:bg-primary-container/40 selection:text-primary">
+    <div id="home" className="home-page relative min-h-screen overflow-x-hidden bg-surface text-on-surface antialiased selection:bg-primary-container/40 selection:text-primary">
       <div className="pointer-events-none fixed top-0 left-1/4 -z-10 h-[600px] w-[600px] rounded-full bg-teal-200/25 blur-[140px]" />
       <div className="pointer-events-none fixed top-1/3 right-0 -z-10 h-[550px] w-[550px] rounded-full bg-primary-container/30 blur-[160px]" />
       <div className="pointer-events-none fixed bottom-10 left-10 -z-10 h-[500px] w-[500px] rounded-full bg-blue-200/25 blur-[150px]" />
@@ -114,8 +124,13 @@ export default function HomePage() {
           </Link>
           <nav className="hidden items-center gap-8 md:flex">
             {NAV.map((item) => (
-              <a key={item.href} href={item.href} className="text-[15px] font-medium text-secondary transition-colors hover:text-on-surface">
+              <a
+                key={item.href}
+                href={item.href}
+                className="group relative py-1 text-[15px] font-medium text-secondary transition-colors hover:text-on-surface"
+              >
                 {item.label}
+                <span className="absolute right-0 -bottom-1.5 left-0 h-0.5 origin-left scale-x-0 rounded-full bg-[#F5AD00] transition-transform duration-200 group-hover:scale-x-100" />
               </a>
             ))}
           </nav>
@@ -141,7 +156,7 @@ export default function HomePage() {
               <h1 className="text-[44px] leading-tight font-extrabold tracking-tight text-on-surface md:text-[54px]">
                 Trade Solar Energy.
                 <br />
-                <span className="text-primary">Power the Community.</span>
+                <span className="text-[#F5AD00]">Power the Community.</span>
               </h1>
               <p className="max-w-xl text-[17px] leading-relaxed text-secondary">
                 Connect residential solar rooftop prosumers with smart microgrid nodes to reserve capacity, transfer clean power, and settle energy verified in real time.
@@ -162,59 +177,72 @@ export default function HomePage() {
                 </a>
               </div>
               <div className="flex items-center gap-2 pt-2 text-xs text-secondary">
-                <Icon name="verified" className="text-[16px] text-primary" />
-                <span>SLIIT SE4040 Capstone Artifact · Utility Synchronized Architecture</span>
+                <Icon name="verified" className="text-[16px] text-[#F5AD00]" />
+                <span>Reserve a station slot · QR-verified transfer · Up to 7 days ahead</span>
               </div>
             </div>
 
             <div className="flex justify-center lg:col-span-5">
-              <div className="flex w-full max-w-md flex-col gap-5 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-md">
-                <div className="flex items-center justify-between border-b border-outline-variant/30 pb-3">
-                  <div className="flex items-center gap-2">
-                    <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-teal-500" />
-                    <span className="text-xs font-bold tracking-wider text-on-surface uppercase">Live Grid Telemetry</span>
+              <div className="home-telemetry relative w-full max-w-md overflow-hidden rounded-3xl border border-[#F5AD00]/35 bg-surface-container-lowest p-5 shadow-[0_24px_50px_-28px_rgba(15,23,42,0.45)]">
+                <div className="pointer-events-none absolute -top-20 -right-12 h-44 w-44 rounded-full bg-[#F5AD00]/25 blur-3xl" />
+                <div className="relative flex items-center justify-between gap-3 border-b border-outline-variant/30 pb-4">
+                  <div className="flex items-center gap-2.5">
+                    <span className="home-live h-2.5 w-2.5 rounded-full bg-teal-500" />
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold tracking-wider text-on-surface uppercase">Live Grid Telemetry</span>
+                      <span className="text-[11px] text-secondary">Station feed, updated live</span>
+                    </div>
                   </div>
-                  <span className="rounded-full border border-primary-container/60 bg-primary-container/20 px-2.5 py-1 text-xs font-semibold text-primary">
+                  <span className="rounded-full border border-[#F5AD00]/50 bg-[#F5AD00]/15 px-2.5 py-1 text-[11px] font-bold text-[#8a6200]">
                     Node 07 Malabe
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="flex flex-col rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-                    <span className="text-xs font-medium text-secondary">Active Infeed</span>
-                    <span className="mt-1 text-2xl font-extrabold text-on-surface">
-                      348.6 <span className="text-xs font-normal text-secondary">kW</span>
+                <div className="relative mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-container text-on-surface">
+                      <Icon name="solar_power" className="text-[18px]" />
+                    </span>
+                    <span className="mt-3 block text-xs font-medium text-secondary">Active Infeed</span>
+                    <span className="mt-1 block text-2xl font-extrabold tracking-tight text-on-surface">
+                      348.6 <span className="text-xs font-semibold text-secondary">kW</span>
                     </span>
                     <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-teal-600">
                       <Icon name="trending_up" className="text-[14px]" /> +14.2% peak
                     </span>
                   </div>
-                  <div className="flex flex-col rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-                    <span className="text-xs font-medium text-secondary">Battery SOC</span>
-                    <span className="mt-1 text-2xl font-extrabold text-on-surface">
-                      88.4 <span className="text-xs font-normal text-secondary">%</span>
+                  <div className="rounded-2xl border border-outline-variant/30 bg-surface-container-low p-4">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-50 text-teal-700">
+                      <Icon name="battery_charging_full" className="text-[18px]" />
                     </span>
-                    <span className="mt-1 flex items-center gap-1 text-xs font-semibold text-blue-600">
-                      <Icon name="sync" className="text-[14px]" /> Optimal
+                    <span className="mt-3 block text-xs font-medium text-secondary">Battery SOC</span>
+                    <span className="mt-1 block text-2xl font-extrabold tracking-tight text-on-surface">
+                      88.4 <span className="text-xs font-semibold text-secondary">%</span>
+                    </span>
+                    <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-outline-variant/40">
+                      <span className="home-soc-bar block h-full rounded-full bg-primary-container" />
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center justify-between rounded-xl border border-primary-container/50 bg-primary-container/15 p-3.5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full border border-primary-container/50 bg-surface-container-lowest text-primary">
+                <div className="relative mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[#F5AD00]/40 bg-[#F5AD00]/10 p-3.5">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[#F5AD00]/40 bg-surface-container-lowest text-[#8a6200]">
                       <Icon name="solar_power" className="text-[20px]" />
                     </div>
-                    <div className="flex flex-col">
+                    <div className="flex min-w-0 flex-col">
                       <span className="text-xs font-bold text-on-surface">Next Dispatch Window</span>
-                      <span className="text-xs text-secondary">11:00 AM · 45 kWh Reserved</span>
+                      <span className="text-xs text-secondary">11:00 AM · 45 kWh reserved</span>
                     </div>
                   </div>
-                  <span className="rounded bg-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-800">READY</span>
+                  <span className="shrink-0 rounded-full bg-teal-100 px-2.5 py-1 text-[11px] font-bold text-teal-800">READY</span>
                 </div>
-                <div className="flex items-center justify-between pt-1 text-xs text-secondary">
+                <div className="relative mt-4 flex items-center justify-between text-xs text-secondary">
                   <span className="flex items-center gap-1">
-                    <Icon name="speed" className="text-[14px] text-primary" /> Grid Freq: <strong className="text-on-surface">50.02 Hz</strong>
+                    <Icon name="speed" className="text-[14px] text-[#F5AD00]" />
+                    Grid freq <strong className="text-on-surface">50.02 Hz</strong>
                   </span>
-                  <span>Last updated: 5s ago</span>
+                  <span className="flex items-center gap-1">
+                    <Icon name="update" className="text-[14px]" /> 5s ago
+                  </span>
                 </div>
               </div>
             </div>
@@ -238,27 +266,32 @@ export default function HomePage() {
         <section id="how-it-works" className="w-full bg-surface py-20">
           <div className="mx-auto max-w-7xl px-5 lg:px-10">
             <div className="mx-auto mb-16 max-w-2xl text-center">
-              <span className="rounded-full border border-primary-container/50 bg-primary-container/20 px-3 py-1 text-xs font-bold tracking-wider text-primary uppercase">
+              <span className="rounded-full bg-primary-container px-3 py-1 text-xs font-bold tracking-wider text-on-surface uppercase">
                 Simple Process
               </span>
-              <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-on-surface">How Solarix Works</h2>
-              <p className="mt-2 text-base text-secondary">Four straightforward steps to monetize rooftop solar power and balance neighborhood grid loads.</p>
+              <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-on-surface">How Solarix Works</h2>
+              <p className="mx-auto mt-3 max-w-xl text-base leading-relaxed text-secondary">
+                Four straightforward steps to monetize rooftop solar power and balance neighborhood grid loads.
+              </p>
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
               {STEPS.map((step) => (
-                <div key={step.n} className="flex flex-col justify-between rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-sm transition-shadow hover:shadow-md">
-                  <div className="flex flex-col gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-primary-container/50 bg-primary-container/20 text-sm font-extrabold text-primary">
-                      {step.n}
+                <article key={step.n} className="home-step flex flex-col justify-between rounded-3xl border-2 border-outline-variant/40 bg-surface-container-lowest p-6 shadow-sm">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                      <span className="home-step__icon flex h-12 w-12 items-center justify-center rounded-2xl border border-outline-variant/40 bg-surface-container-low text-on-surface">
+                        <Icon name={step.mark} className="text-[24px]" />
+                      </span>
+                      <span className="home-step__num text-sm font-extrabold tracking-widest text-secondary">{step.n}</span>
                     </div>
                     <h3 className="text-lg font-bold text-on-surface">{step.title}</h3>
                     <p className="text-sm leading-relaxed text-secondary">{step.body}</p>
                   </div>
-                  <div className="mt-6 flex items-center gap-1.5 border-t border-outline-variant/30 pt-3 text-xs font-medium text-secondary">
-                    <Icon name={step.icon} className={`text-[16px] ${step.iconClass || 'text-primary'}`} />
+                  <div className="mt-6 flex items-center gap-2 border-t border-outline-variant/30 pt-3 text-xs font-semibold text-secondary">
+                    <Icon name={step.icon} className={`text-[16px] ${step.iconClass || 'text-secondary'}`} />
                     {step.foot}
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
@@ -267,7 +300,7 @@ export default function HomePage() {
         <section className="w-full border-t border-outline-variant/40 bg-surface-container-lowest py-20">
           <div className="mx-auto max-w-7xl px-5 lg:px-10">
             <div className="mx-auto mb-16 max-w-2xl text-center">
-              <span className="rounded-full border border-primary-container/50 bg-primary-container/20 px-3 py-1 text-xs font-bold tracking-wider text-primary uppercase">
+              <span className="rounded-full bg-primary-container px-3 py-1 text-xs font-bold tracking-wider text-on-surface uppercase">
                 Ecosystem
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-on-surface">Tailored for Every Stakeholder</h2>
@@ -275,9 +308,9 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
               {ROLES.map((role) => (
-                <div key={role.title} className="flex flex-col justify-between rounded-2xl border border-outline-variant/40 bg-surface p-8 shadow-sm">
+                <div key={role.title} className={`home-role home-role--${role.hover} flex flex-col justify-between rounded-2xl border-2 border-outline-variant/40 bg-surface p-8 shadow-sm`}>
                   <div className="flex flex-col gap-4">
-                    <div className={`flex h-12 w-12 items-center justify-center rounded-xl border ${role.tone}`}>
+                    <div className={`home-role__icon flex h-12 w-12 items-center justify-center rounded-xl border ${role.tone}`}>
                       <Icon name={role.icon} className="text-[26px]" />
                     </div>
                     <h3 className="text-xl font-bold text-on-surface">{role.title}</h3>
@@ -303,7 +336,7 @@ export default function HomePage() {
         <section id="features" className="w-full bg-surface py-20">
           <div className="mx-auto max-w-7xl px-5 lg:px-10">
             <div className="mx-auto mb-16 max-w-2xl text-center">
-              <span className="rounded-full border border-primary-container/50 bg-primary-container/20 px-3 py-1 text-xs font-bold tracking-wider text-primary uppercase">
+              <span className="rounded-full bg-primary-container px-3 py-1 text-xs font-bold tracking-wider text-on-surface uppercase">
                 Capabilities
               </span>
               <h2 className="mt-3 text-3xl font-extrabold tracking-tight text-on-surface">Core Platform Features</h2>
@@ -311,7 +344,7 @@ export default function HomePage() {
             </div>
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
               {FEATURES.map((feature) => (
-                <div key={feature.title} className="flex flex-col gap-3 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-6 shadow-sm transition-shadow hover:shadow-md">
+                <div key={feature.title} className="home-feature flex flex-col gap-3 rounded-2xl border-2 border-outline-variant/40 bg-surface-container-lowest p-6 shadow-sm">
                   <div className={`flex h-10 w-10 items-center justify-center rounded-xl border ${feature.tone}`}>
                     <Icon name={feature.icon} className="text-[22px]" />
                   </div>
@@ -417,38 +450,52 @@ export default function HomePage() {
 
         <section id="about" className="w-full bg-surface py-16">
           <div className="mx-auto max-w-7xl px-5 lg:px-10">
-            <div className="rounded-2xl border border-outline-variant/40 bg-surface-container-lowest p-8 shadow-sm md:p-12">
-              <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-12">
-                <div className="flex flex-col gap-3 lg:col-span-7">
-                  <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-primary uppercase">
-                    <Icon name="school" className="text-[16px]" />
-                    Sri Lanka Institute of Information Technology (SLIIT)
-                  </div>
-                  <h3 className="text-2xl font-bold text-on-surface">SE4040 Enterprise Application Development</h3>
-                  <p className="text-sm leading-relaxed text-secondary">
-                    Solarix is engineered as a graduation capstone research prototype demonstrating peer-to-peer microgrid load management, distributed telemetry ingestion, and cryptographically verified energy distribution.
-                  </p>
-                  <div className="flex flex-wrap gap-4 pt-2 text-xs font-medium text-secondary">
-                    <span>Faculty of Computing · Software Engineering</span>
-                    <span className="text-outline-variant">•</span>
-                    <span>Academic Year 2026</span>
-                  </div>
+            <div className="rounded-[2rem] bg-primary-container p-4 text-on-surface shadow-md md:p-6">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-full bg-surface-container-lowest px-4 py-2.5 text-on-surface">
+                <div className="flex items-center gap-2 text-xs font-bold tracking-wider uppercase">
+                  <Icon name="sunny" className="text-[18px]" />
+                  Solarix
                 </div>
-                <div className="rounded-xl border border-outline-variant/40 bg-surface-container-low p-6 lg:col-span-5">
-                  <span className="mb-3 block text-xs font-bold tracking-wider text-on-surface uppercase">Development Team (Group 2026-SE-44)</span>
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    {[
-                      ['Kasun J.', 'Team Lead & System Architect'],
-                      ['P. Alwis', 'Microgrid Infrastructure'],
-                      ['D. Perera', 'Backend Microservices'],
-                      ['T. Silva', 'Frontend & Telemetry UI'],
-                    ].map(([name, role]) => (
-                      <div key={name} className="flex flex-col">
-                        <span className="font-bold text-on-surface">{name}</span>
-                        <span className="text-secondary">{role}</span>
-                      </div>
-                    ))}
+                <div className="flex items-center gap-2 text-xs font-bold">
+                  <Icon name="solar_power" className="text-[18px]" />
+                  Smart Solar Microgrid Trading
+                </div>
+              </div>
+              <div className="flex flex-col gap-6 px-2 pt-6 pb-2 lg:px-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+                  <div className="max-w-2xl">
+                    <h3 className="text-2xl font-bold">Trade rooftop solar. Power the neighborhood.</h3>
+                    <p className="mt-2 text-sm leading-relaxed font-medium">
+                      Reserve a station slot, carry a signed QR pass, and feed clean energy into the community grid — metered and verified in real time.
+                    </p>
                   </div>
+                  <Link
+                    to="/reservations"
+                    className="inline-flex w-fit items-center gap-3 rounded-full bg-on-surface py-2 pr-2 pl-5 text-sm font-bold text-primary-container"
+                  >
+                    Book an energy slot
+                    <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-container text-on-surface">
+                      <Icon name="arrow_forward" className="text-[20px]" />
+                    </span>
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    ['event_available', 'Reserve a slot', 'Lock a feed-in window up to 7 days ahead'],
+                    ['qr_code_2', 'QR-verified pass', 'One-time signed dispatch at the node'],
+                    ['bolt', 'Transfer energy', 'Metered injection with live settlement'],
+                    ['groups', 'Share the grid', 'Balance neighborhood load together'],
+                  ].map(([icon, title, body]) => (
+                    <div key={title} className="flex items-start gap-3 rounded-[1.25rem] bg-surface-container-lowest p-4">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-container text-on-surface">
+                        <Icon name={icon} className="text-[18px]" />
+                      </span>
+                      <span className="flex flex-col">
+                        <span className="text-sm font-bold">{title}</span>
+                        <span className="text-xs font-medium text-secondary">{body}</span>
+                      </span>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
