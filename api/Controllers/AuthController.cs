@@ -45,53 +45,76 @@ public class AuthController : ControllerBase
 
 
 
-[HttpPost("register")]
-public async Task<IActionResult> RegisterProsumer(
-    [FromBody] RegisterProsumerRequest request)
+[HttpPost("register/start")]
+public async Task<IActionResult> StartRegistration([FromForm] RegisterStartRequest request)
 {
-    // Validate the required registration information.
-    if (string.IsNullOrWhiteSpace(request.NIC) ||
-        string.IsNullOrWhiteSpace(request.Name) ||
-        string.IsNullOrWhiteSpace(request.Email) ||
-        string.IsNullOrWhiteSpace(request.Password))
+    if (!ModelState.IsValid)
     {
-        return BadRequest(new
-        {
-            message = "NIC, name, email and password are required."
-        });
+        return BadRequest(ModelState);
     }
 
-    // Create a Prosumer account from the registration request.
-    var user = new User
-    {
-        NIC = request.NIC,
-        Name = request.Name,
-        Email = request.Email,
-        Phone = request.Phone,
-        Address = request.Address,
-        Role = Role.PROSUMER,
-        AccountStatus = AccountStatus.PENDING
-    };
+    var result = await _userService.StartRegistrationAsync(request);
 
-    var result = await _userService.RegisterProsumerAsync(
-        user,
-        request.Password
-    );
-
-    // Return conflict when the NIC is already registered.
     if (!result.Success)
     {
-        return Conflict(new
-        {
-            message = result.Message
-        });
+        if (result.Message == "This NIC is already registered.")
+            return Conflict(new { message = result.Message });
+
+        return BadRequest(new { message = result.Message });
+    }
+
+    return Ok(new
+    {
+        message = result.Message,
+        registrationId = result.RegistrationId
+    });
+}
+
+[HttpPost("register/verify-otp")]
+public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var result = await _userService.VerifyOtpAsync(request);
+
+    if (!result.Success)
+    {
+        return BadRequest(new { message = result.Message });
     }
 
     return CreatedAtAction(
         nameof(Login),
         null,
-        result.User
+        new
+        {
+            message = result.Message,
+            NIC = result.User?.NIC,
+            role = result.User?.Role.ToString(),
+            accountStatus = result.User?.AccountStatus.ToString(),
+            emailVerified = result.User?.EmailVerified
+        }
     );
+}
+
+[HttpPost("register/resend-otp")]
+public async Task<IActionResult> ResendOtp([FromBody] ResendOtpRequest request)
+{
+    if (!ModelState.IsValid)
+    {
+        return BadRequest(ModelState);
+    }
+
+    var result = await _userService.ResendOtpAsync(request);
+
+    if (!result.Success)
+    {
+        return BadRequest(new { message = result.Message });
+    }
+
+    return Ok(new { message = result.Message });
 }
     
 }

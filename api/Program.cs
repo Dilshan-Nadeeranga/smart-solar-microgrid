@@ -9,6 +9,8 @@ using SolarGrid.Api.Data;
 using SolarGrid.Api.Repositories;
 using SolarGrid.Api.Services;
 
+using SolarGrid.Api.Models;
+
 Env.Load("../.env");
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +38,16 @@ var qrOptions = new QrOptions
     ValidAfterSlotEnd = ReadMinutes("QR_VALID_AFTER_END_MINUTES", 0)
 };
 
+var emailSettings = new EmailSettings
+{
+    SmtpHost = Environment.GetEnvironmentVariable("SMTP_HOST") ?? "smtp.gmail.com",
+    SmtpPort = int.TryParse(Environment.GetEnvironmentVariable("SMTP_PORT"), out var port) ? port : 587,
+    SmtpUsername = Environment.GetEnvironmentVariable("SMTP_USERNAME") ?? string.Empty,
+    SmtpPassword = Environment.GetEnvironmentVariable("SMTP_PASSWORD") ?? string.Empty,
+    FromEmail = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? "noreply@smartsolarmicrogrid.com",
+    FromName = Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? "Smart Solar Microgrid"
+};
+
 // Register MongoDB
 builder.Services.AddSingleton(mongoSettings);
 builder.Services.AddSingleton<MongoDbContext>();
@@ -46,8 +58,11 @@ builder.Services.AddSingleton<IMongoDatabase>(sp =>
 builder.Services.AddSingleton<UserRepository>();
 builder.Services.AddSingleton<ReservationRepository>();
 builder.Services.AddSingleton<ReservationMonitoringRepository>();
+builder.Services.AddSingleton<PendingRegistrationRepository>();
 
 // Register services
+builder.Services.AddSingleton(emailSettings);
+builder.Services.AddSingleton<IEmailService, EmailService>();
 builder.Services.AddSingleton<UserService>();
 builder.Services.AddSingleton<JwtService>();
 builder.Services.AddSingleton<StationService>();
