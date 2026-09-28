@@ -292,4 +292,60 @@ public async Task<IActionResult> ActivateUser(string nic)
         message = "You have Backoffice access."
     });
 }
+
+    [Authorize(Roles = "BACKOFFICE")]
+    [HttpGet("staff")]
+    public async Task<IActionResult> GetStaff()
+    {
+        var users = await _userService.GetAllAsync();
+        var staff = users.Where(u => u.Role == Role.BACKOFFICE || u.Role == Role.GRID_OPERATOR)
+                         .Select(UserResponse.FromUser)
+                         .ToList();
+        return Ok(staff);
+    }
+
+    [Authorize]
+    [HttpPatch("{nic}/profile")]
+    public async Task<IActionResult> UpdateProfile(string nic, [FromBody] UpdateProfileRequest request)
+    {
+        var loggedInNIC = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (loggedInNIC != nic)
+        {
+            return Forbid();
+        }
+
+        var result = await _userService.UpdateProfileAsync(nic, request);
+
+        if (!result.Success)
+        {
+            return NotFound(new { message = result.Message });
+        }
+
+        return Ok(result.User);
+    }
+
+    [Authorize]
+    [HttpPatch("{nic}/deactivation-request")]
+    public async Task<IActionResult> RequestDeactivation(string nic)
+    {
+        var loggedInNIC = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (loggedInNIC != nic)
+        {
+            return Forbid();
+        }
+
+        var result = await _userService.RequestDeactivationAsync(nic);
+
+        if (!result.Success)
+        {
+            if (result.Message == "User not found.")
+                return NotFound(new { message = result.Message });
+            else
+                return BadRequest(new { message = result.Message });
+        }
+
+        return Ok(new { message = result.Message });
+    }
 }

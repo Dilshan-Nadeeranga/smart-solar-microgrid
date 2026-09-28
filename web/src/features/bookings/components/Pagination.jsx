@@ -19,12 +19,12 @@ export default function Pagination({ page, pageSize, totalCount, totalPages, onP
         <span className="font-semibold text-on-surface">{totalCount}</span>
       </p>
       <div className="flex flex-wrap items-center gap-3">
-        <label className="flex items-center gap-2 text-sm text-secondary">
+        <label className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm text-secondary">
           Rows per page
           <select
             value={pageSize}
             onChange={(event) => onPageSizeChange(Number(event.target.value))}
-            className={`${inputClass} w-auto py-1`}
+            className={`${inputClass.replace('w-full', 'w-auto')} py-1`}
           >
             {PAGE_SIZES.map((size) => (
               <option key={size} value={size}>
@@ -43,7 +43,7 @@ export default function Pagination({ page, pageSize, totalCount, totalPages, onP
           >
             Prev
           </Button>
-          <span className="text-sm text-on-surface">
+          <span className="whitespace-nowrap text-sm text-on-surface">
             Page {page} of {pages}
           </span>
           <Button size="sm" onClick={() => onPageChange(page + 1)} disabled={page >= pages} aria-label="Next page">
