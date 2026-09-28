@@ -3,6 +3,11 @@ async function request(path, options = {}) {
   if (options.body) {
     headers['Content-Type'] = 'application/json'
   }
+  
+  const token = localStorage.getItem('token')
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
 
   let response
   try {
@@ -22,12 +27,35 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      throw new Error('Session expired. Please login again.')
+    }
+    if (response.status === 403) {
+      throw new Error('You do not have permission to perform this action.')
+    }
+    if (response.status === 404) {
+      throw new Error('User not found.')
+    }
     const error = new Error(data?.message || `Request failed (${response.status})`)
     error.status = response.status
     throw error
   }
 
   return data
+}
+
+export const authApi = {
+  login: (body) => request('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+}
+
+export const usersApi = {
+  getProfile: (nic) => request(`/users/${nic}`),
+  createProsumer: (body) => request('/users', { method: 'POST', body: JSON.stringify(body) }),
+  createStaff: (body) => request('/users/staff', { method: 'POST', body: JSON.stringify(body) }),
+  getPending: () => request('/users/pending'),
+  activate: (nic) => request(`/users/${nic}/activate`, { method: 'PATCH' }),
+  deactivate: (nic) => request(`/users/${nic}/deactivate`, { method: 'PATCH' }),
+  reactivate: (nic) => request(`/users/${nic}/reactivate`, { method: 'PATCH' }),
 }
 
 export const stationsApi = {

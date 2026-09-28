@@ -27,6 +27,14 @@ public class UserRepository
             .ToListAsync();
     }
 
+    public async Task<List<User>> GetPendingUsersAsync()
+{
+    // Find all users whose accounts are waiting for activation.
+    return await _users
+        .Find(user => user.AccountStatus == AccountStatus.PENDING)
+        .ToListAsync();
+}
+
     public async Task CreateAsync(User user)
     {
         await _users.InsertOneAsync(user);
