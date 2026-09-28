@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 
 const links = [
   { to: '/dashboard', label: 'Dashboard', end: true },
@@ -29,7 +29,7 @@ export default function App() {
     <div className="min-h-screen bg-surface font-body-sm text-body-sm text-on-surface antialiased">
       <aside className="fixed left-0 top-0 hidden h-full w-60 flex-col justify-between border-r border-outline-variant/30 bg-surface-container-lowest py-6 lg:flex">
         <div className="flex flex-col gap-6">
-          <div className="flex items-start gap-3 px-6">
+          <Link to="/" className="flex items-start gap-3 px-6">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-container shadow-sm">
               <span className="material-symbols-outlined text-[20px] text-on-primary-container">sunny</span>
             </div>
@@ -40,7 +40,7 @@ export default function App() {
               <span className="truncate text-xl font-bold leading-tight text-on-surface">BackOfficer</span>
               <span className="text-[11px] font-medium text-secondary">Station Management</span>
             </div>
-          </div>
+          </Link>
           <nav className="mt-4 flex flex-col gap-1">
             {links.map((link) => (
               <NavLink key={link.to} to={link.to} end={link.end} className={({ isActive }) => navClass(isActive)}>
