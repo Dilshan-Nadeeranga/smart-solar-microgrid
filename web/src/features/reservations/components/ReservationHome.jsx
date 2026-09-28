@@ -1,25 +1,33 @@
 import { useEffect, useState } from 'react';
+import { reservationsApi } from '../../../api.js';
 import { formatDate, formatTimeRange, initials } from '../format';
-import { getReservation, listSampleReservations } from '../mockReservationApi';
 import { ErrorNotice, Icon, PageHeader, Spinner, StatusBadge, StepHeader } from './ui';
 
-export default function ReservationHome({ refData, refreshKey, onCreate, onOpen, onResetDemo }) {
+export default function ReservationHome({ refData, onCreate, onOpen }) {
   const [reference, setReference] = useState('');
   const [lookupError, setLookupError] = useState(null);
   const [looking, setLooking] = useState(false);
-  const [samples, setSamples] = useState({ key: null, items: [] });
+  const [bookings, setBookings] = useState(null);
+  const [listError, setListError] = useState(null);
 
   useEffect(() => {
     let active = true;
 
-    listSampleReservations().then((items) => {
-      if (active) setSamples({ key: refreshKey, items });
-    });
+    reservationsApi
+      .list()
+      .then((page) => {
+        if (active) setBookings(page?.items ?? []);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setListError(error);
+        setBookings([]);
+      });
 
     return () => {
       active = false;
     };
-  }, [refreshKey]);
+  }, []);
 
   async function handleLookup(event) {
     event.preventDefault();
@@ -31,7 +39,7 @@ export default function ReservationHome({ refData, refreshKey, onCreate, onOpen,
     setLookupError(null);
 
     try {
-      await getReservation(id);
+      await reservationsApi.get(id);
       onOpen(id);
     } catch (error) {
       setLookupError(error);
@@ -91,26 +99,18 @@ export default function ReservationHome({ refData, refreshKey, onCreate, onOpen,
       </div>
 
       <section className="rm-card">
-        <StepHeader
-          title="Sample reservations"
-          aside={
-            <button type="button" className="rm-button rm-button--ghost rm-button--sm" onClick={onResetDemo}>
-              <Icon name="restart_alt" />
-              Reset demo data
-            </button>
-          }
-        />
-        <p className="rm-muted rm-section-note">
-          Mock data for trying the screens. The full booking list is part of the monitoring pages
-          (Member 4).
-        </p>
+        <StepHeader title="Reservations" />
 
-        {samples.key !== refreshKey || !refData.ready ? (
+        {listError && <ErrorNotice error={listError} />}
+        {bookings === null || !refData.ready ? (
           <Spinner />
+        ) : bookings.length === 0 ? (
+          <p className="rm-empty">No reservations yet.</p>
         ) : (
           <ul className="rm-sample-list">
-            {samples.items.map((item) => {
+            {bookings.map((item) => {
               const name = refData.prosumerByNic.get(item.prosumerId)?.name ?? item.prosumerId;
+              const stationName = item.stationName ?? refData.stationById.get(item.stationId)?.name ?? item.stationId;
 
               return (
                 <li key={item.id}>
@@ -123,10 +123,11 @@ export default function ReservationHome({ refData, refreshKey, onCreate, onOpen,
                       </span>
                     </span>
                     <span className="rm-value-stack">
-                      <span>{refData.stationById.get(item.stationId)?.name}</span>
+                      <span>{stationName}</span>
                       <span className="rm-value-stack__sub">
-                        {formatDate(item.slotStartTimeUtc)} ·{' '}
-                        {formatTimeRange(item.slotStartTimeUtc, item.slotEndTimeUtc)}
+                        {item.slotStartTimeUtc
+                          ? `${formatDate(item.slotStartTimeUtc)} · ${formatTimeRange(item.slotStartTimeUtc, item.slotEndTimeUtc)}`
+                          : 'Slot time unavailable'}
                       </span>
                     </span>
                     <StatusBadge status={item.status} />
