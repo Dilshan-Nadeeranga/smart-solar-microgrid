@@ -39,4 +39,16 @@ interface ApiService {
 
     @PATCH("api/users/{nic}/deactivation-request")
     suspend fun requestDeactivation(@Path("nic") nic: String): Response<BaseResponse>
+
+    @GET("api/reservations/summary")
+    suspend fun getReservationSummary(): Response<ReservationSummaryResponse>
+
+    @GET("api/reservations/mine")
+    suspend fun getMyReservations(
+        @Query("status") status: String? = null,
+        @Query("pageSize") pageSize: Int = 20
+    ): Response<ReservationPageResponse>
+
+    @GET("api/stations")
+    suspend fun getStations(): Response<List<SolarStation>>
 }
