@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.ead.solargrid.R
 import com.ead.solargrid.api.ApiClient
+import com.ead.solargrid.ui.SystemBarUtils
 import com.ead.solargrid.models.ResendOtpRequest
 import com.ead.solargrid.models.VerifyOtpRequest
 import kotlinx.coroutines.launch
@@ -20,6 +21,10 @@ class OtpVerificationActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_otp_verification)
+        val root = findViewById<android.view.View>(R.id.activityRoot)
+        val content = findViewById<android.view.View>(R.id.activityContent)
+        val scrim = findViewById<android.view.View>(R.id.statusBarScrim)
+        SystemBarUtils.applyInsetsOnContent(this, root, content, scrim)
 
         registrationId = intent.getStringExtra("REGISTRATION_ID")
 

@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SolarGrid"
+rootProject.name = "Solarix"
 include(":app")
  

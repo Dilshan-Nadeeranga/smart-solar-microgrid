@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/splashRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/solarix_header"
+    android:forceDarkAllowed="false">
+
+    <ImageView
+        android:id="@+id/splashIcon"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:alpha="0"
+        android:contentDescription="@string/solarix_brand"
+        android:scaleType="fitCenter"
+        android:src="@drawable/solarix_icon"
+        app:tint="@null"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/splashBottom"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingHorizontal="32dp"
+        android:paddingBottom="40dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageView
+            android:id="@+id/splashLogo"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:alpha="0"
+            android:contentDescription="@string/solarix_brand"
+            android:scaleType="fitCenter"
+            android:src="@drawable/solarix_logo"
+            app:tint="@null" />
+
+        <TextView
+            android:id="@+id/splashTagline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:alpha="0"
+            android:gravity="center"
+            android:letterSpacing="0.03"
+            android:text="@string/solarix_splash_tagline"
+            android:textColor="@color/black"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
