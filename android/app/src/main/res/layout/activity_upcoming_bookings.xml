@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prosumer: all Approved bookings whose slot has not ended. States are switched in UpcomingBookingsActivity. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dashboard_bg"
+    android:orientation="vertical"
+    tools:context=".ui.home.upcoming.UpcomingBookingsActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/qr_back"
+            android:src="@drawable/ic_qr_back"
+            app:tint="@color/dashboard_text" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:accessibilityHeading="true"
+            android:text="@string/dashboard_upcoming_title"
+            android:textColor="@color/dashboard_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvCount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_solar_icon_circle"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:textColor="@color/solar_yellow_dark"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="4 bookings"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:id="@+id/content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="24dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/upcoming_subtitle"
+                android:textColor="@color/dashboard_muted"
+                android:textSize="14sp" />
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="48dp"
+                android:indeterminateTint="@color/solar_yellow" />
+
+            <LinearLayout
+                android:id="@+id/bookingList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical" />
+
+            <!-- Empty or error message; Retry shows only for errors. -->
+            <LinearLayout
+                android:id="@+id/messageGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone"
+                tools:visibility="visible">
+
+                <TextView
+                    android:id="@+id/tvMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:accessibilityLiveRegion="polite"
+                    android:gravity="center"
+                    android:textColor="@color/dashboard_muted"
+                    android:textSize="15sp"
+                    tools:text="No upcoming approved bookings yet." />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnRetry"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:minWidth="140dp"
+                    android:text="@string/qr_retry"
+                    android:textAllCaps="false"
+                    android:textColor="@color/solar_yellow_dark"
+                    app:cornerRadius="14dp"
+                    app:strokeColor="@color/solar_yellow"
+                    app:strokeWidth="1dp" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

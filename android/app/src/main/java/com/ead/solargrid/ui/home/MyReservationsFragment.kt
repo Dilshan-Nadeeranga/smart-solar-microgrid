@@ -2,6 +2,7 @@ package com.ead.solargrid.ui.home
 
 import android.graphics.Typeface
 import android.os.Bundle
+import androidx.core.content.ContextCompat
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -25,6 +26,8 @@ import com.ead.solargrid.models.ReservationItem
 import com.ead.solargrid.models.SolarStation
 import com.ead.solargrid.ui.home.booking.BookingRules
 import com.ead.solargrid.ui.home.booking.StationSlotBuilder
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneId
@@ -47,6 +50,8 @@ class MyReservationsFragment : Fragment() {
     private var selectedSlot: EnergyBookingSlotDto? = null
     private var selectedDayKey: String? = null
     private var submitting = false
+    private var stationsFetchJob: Job? = null
+    private var stationSearchDebounceJob: Job? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -75,12 +80,20 @@ class MyReservationsFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
-                updateStationCountLabel()
-                renderStationCards()
+                stationSearchDebounceJob?.cancel()
+                stationSearchDebounceJob = viewLifecycleOwner.lifecycleScope.launch {
+                    delay(200)
+                    updateStationCountLabel()
+                    renderStationCards()
+                }
             }
         })
+        binding.etStationSearch.setOnFocusChangeListener { _, hasFocus ->
+            applyStationSearchStroke(hasFocus)
+        }
 
         showStep(Step.LIST)
+        prefetchStationsQuietly()
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
@@ -104,6 +117,7 @@ class MyReservationsFragment : Fragment() {
         }
         if (step == Step.LIST) {
             loadPendingBookings()
+            prefetchStationsQuietly()
         }
     }
 
@@ -127,7 +141,7 @@ class MyReservationsFragment : Fragment() {
 
     private fun setupStepHeaders() {
         binding.headerStation.tvStepNumber.text = "1"
-        binding.headerStation.tvStepTitle.setText(R.string.booking_step_station)
+        binding.headerStation.tvStepTitle.setText(R.string.booking_available_stations)
         binding.headerSlot.tvStepNumber.text = "2"
         binding.headerSlot.tvStepTitle.setText(R.string.booking_step_slot)
     }
@@ -175,7 +189,6 @@ class MyReservationsFragment : Fragment() {
         binding.stepSummary.isVisible = current == Step.SUMMARY
 
         binding.wizardToolbar.isVisible = !isList
-        binding.stationSearchLayout.isVisible = current == Step.STATION
         binding.btnBookingBack.isVisible = current != Step.LIST
         binding.btnBookingContinue.isVisible = current == Step.STATION || current == Step.SLOT
         binding.btnBookingContinue.isEnabled = when (current) {
@@ -184,17 +197,20 @@ class MyReservationsFragment : Fragment() {
             else -> false
         }
 
+        if (current != Step.STATION) {
+            binding.etStationSearch.clearFocus()
+            applyStationSearchStroke(false)
+        }
+
         when (current) {
             Step.LIST -> loadPendingBookings()
             Step.STATION -> {
                 binding.tvBookingEyebrow.isVisible = true
                 binding.tvBookingEyebrow.setText(R.string.booking_eyebrow_new)
                 binding.tvBookingTitle.setText(R.string.booking_step_station)
-                binding.tvBookingSubtitle.setText(R.string.booking_create_subtitle_app)
-                if (stations.isEmpty()) loadStations() else {
-                    updateStationCountLabel()
-                    renderStationCards()
-                }
+                binding.tvBookingSubtitle.isVisible = false
+                applyStationSearchStroke(binding.etStationSearch.hasFocus())
+                presentStationStep()
             }
             Step.SLOT -> {
                 selectedDayKey = null
@@ -202,6 +218,7 @@ class MyReservationsFragment : Fragment() {
                 binding.btnBookingContinue.isEnabled = false
                 binding.tvBookingEyebrow.isVisible = true
                 binding.tvBookingTitle.setText(R.string.booking_step_slot)
+                binding.tvBookingSubtitle.isVisible = true
                 binding.tvBookingSubtitle.text = selectedStation?.name ?: ""
                 binding.tvSlotMonth.text = monthLabel()
                 loadSlotsForStation()
@@ -209,6 +226,7 @@ class MyReservationsFragment : Fragment() {
             Step.SUMMARY -> {
                 binding.tvBookingEyebrow.isVisible = true
                 binding.tvBookingTitle.setText(R.string.booking_summary_title)
+                binding.tvBookingSubtitle.isVisible = true
                 binding.tvBookingSubtitle.setText(R.string.booking_summary_eyebrow)
             }
         }
@@ -262,31 +280,66 @@ class MyReservationsFragment : Fragment() {
             getString(R.string.booking_active_stations_count, filteredStations().size)
     }
 
-    private fun loadStations() {
-        binding.progressStations.isVisible = true
-        binding.stationList.isVisible = false
+    /** Show cached stations instantly; only hit the network when the cache is empty. */
+    private fun presentStationStep() {
         binding.tvStationsError.isVisible = false
-        binding.headerStation.tvStepAside.text = ""
+        if (stations.isNotEmpty()) {
+            binding.progressStations.isVisible = false
+            binding.stationList.isVisible = true
+            updateStationCountLabel()
+            renderStationCards()
+            return
+        }
+        if (stationsFetchJob?.isActive == true) {
+            binding.progressStations.isVisible = true
+            binding.stationList.isVisible = false
+            return
+        }
+        fetchStations(showBlockingLoader = true)
+    }
 
-        viewLifecycleOwner.lifecycleScope.launch {
+    /** Load stations in the background while the user is on the bookings list. */
+    private fun prefetchStationsQuietly() {
+        if (stations.isNotEmpty() || stationsFetchJob?.isActive == true) return
+        fetchStations(showBlockingLoader = false)
+    }
+
+    private fun fetchStations(showBlockingLoader: Boolean) {
+        if (showBlockingLoader && _binding != null) {
+            binding.progressStations.isVisible = true
+            binding.stationList.isVisible = stations.isNotEmpty()
+            binding.tvStationsError.isVisible = false
+            if (stations.isEmpty()) {
+                binding.headerStation.tvStepAside.text = ""
+            }
+        }
+
+        stationsFetchJob?.cancel()
+        stationsFetchJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.getApiService(requireContext())
                 val response = api.getStations()
                 if (_binding == null) return@launch
                 binding.progressStations.isVisible = false
                 if (!response.isSuccessful) {
-                    binding.tvStationsError.isVisible = true
-                    binding.tvStationsError.text = getString(R.string.dashboard_load_error)
+                    if (step == Step.STATION && stations.isEmpty()) {
+                        binding.tvStationsError.isVisible = true
+                        binding.tvStationsError.text = getString(R.string.dashboard_load_error)
+                    }
                     return@launch
                 }
                 stations = response.body().orEmpty().filter { it.isActive }
-                updateStationCountLabel()
-                renderStationCards()
+                if (step == Step.STATION) {
+                    updateStationCountLabel()
+                    renderStationCards()
+                }
             } catch (_: Exception) {
                 if (_binding == null) return@launch
                 binding.progressStations.isVisible = false
-                binding.tvStationsError.isVisible = true
-                binding.tvStationsError.text = getString(R.string.dashboard_load_error)
+                if (step == Step.STATION && stations.isEmpty()) {
+                    binding.tvStationsError.isVisible = true
+                    binding.tvStationsError.text = getString(R.string.dashboard_load_error)
+                }
             }
         }
     }
@@ -302,18 +355,64 @@ class MyReservationsFragment : Fragment() {
         val inflater = layoutInflater
         visible.forEach { station ->
             val cardBinding = ItemBookingStationCardBinding.inflate(inflater, binding.stationList, false)
+            val selected = selectedStation?.id == station.id
             cardBinding.tvStationName.text = station.name
             cardBinding.tvStationAddress.text = station.address ?: "—"
             cardBinding.tvStationCapacity.text = getString(R.string.station_capacity_value, station.capacityKw)
-            cardBinding.radioSelected.isChecked = selectedStation?.id == station.id
+            applyStationCardSelection(cardBinding, selected)
+            cardBinding.root.tag = station.id
             cardBinding.root.setOnClickListener {
                 selectedStation = station
                 selectedSlot = null
-                renderStationCards()
+                refreshStationCardSelection()
                 binding.btnBookingContinue.isEnabled = true
             }
             binding.stationList.addView(cardBinding.root)
         }
+    }
+
+    private fun refreshStationCardSelection() {
+        for (i in 0 until binding.stationList.childCount) {
+            val root = binding.stationList.getChildAt(i)
+            val stationId = root.tag as? String ?: continue
+            val selected = selectedStation?.id == stationId
+            applyStationCardSelection(ItemBookingStationCardBinding.bind(root), selected)
+        }
+    }
+
+    private fun applyStationSearchStroke(focused: Boolean) {
+        if (_binding == null) return
+        val density = resources.displayMetrics.density
+        val card = binding.stationSearchLayout
+        if (focused) {
+            card.strokeWidth = (2.5f * density).toInt()
+            card.strokeColor = ContextCompat.getColor(requireContext(), R.color.booking_card_selected_stroke)
+            card.cardElevation = 2f
+        } else {
+            card.strokeWidth = (1f * density).toInt()
+            card.strokeColor = ContextCompat.getColor(requireContext(), R.color.booking_search_stroke)
+            card.cardElevation = 1f
+        }
+    }
+
+    private fun applyStationCardSelection(
+        cardBinding: ItemBookingStationCardBinding,
+        selected: Boolean
+    ) {
+        cardBinding.radioInner.isVisible = selected
+        cardBinding.radioOuter.setBackgroundResource(
+            if (selected) R.drawable.bg_station_radio_outer_selected
+            else R.drawable.bg_station_radio_outer
+        )
+        val density = resources.displayMetrics.density
+        val strokeDp = if (selected) 3.5f else 1f
+        cardBinding.stationCardRoot.strokeWidth = (strokeDp * density).toInt()
+        cardBinding.stationCardRoot.strokeColor = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.booking_card_selected_stroke else R.color.booking_search_stroke
+        )
+        cardBinding.stationCardRoot.cardElevation = if (selected) 8f else 2f
+        cardBinding.stationCardRoot.translationZ = if (selected) 2f else 0f
     }
 
     private fun loadSlotsForStation() {
