@@ -43,6 +43,15 @@ interface ApiService {
     @GET("api/reservations/summary")
     suspend fun getReservationSummary(): Response<ReservationSummaryResponse>
 
+    /** Staff reservation list. dateUtc is the UTC day of the slot start (yyyy-MM-dd). */
+    @GET("api/reservations")
+    suspend fun getReservations(
+        @Query("status") status: String? = null,
+        @Query("dateUtc") dateUtc: String? = null,
+        @Query("page") page: Int? = null,
+        @Query("pageSize") pageSize: Int? = null
+    ): Response<ReservationPageResponse>
+
     @GET("api/reservations/mine")
     suspend fun getMyReservations(
         @Query("status") status: String? = null,

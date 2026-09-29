@@ -13,6 +13,7 @@ import com.ead.solargrid.api.ApiClient
 import com.ead.solargrid.database.SessionManager
 import com.ead.solargrid.models.LoginRequest
 import com.ead.solargrid.ui.home.ProsumerHomeActivity
+import com.ead.solargrid.ui.operator.GridOperatorHomeActivity
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -66,6 +67,9 @@ class LoginActivity : AppCompatActivity() {
 
                         if (body.role == "PROSUMER") {
                             startActivity(Intent(this@LoginActivity, ProsumerHomeActivity::class.java))
+                            finish()
+                        } else if (body.role == "GRID_OPERATOR") {
+                            startActivity(Intent(this@LoginActivity, GridOperatorHomeActivity::class.java))
                             finish()
                         } else {
                             Toast.makeText(this@LoginActivity, "Logged in as ${body.role}", Toast.LENGTH_SHORT).show()

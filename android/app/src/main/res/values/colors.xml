@@ -17,4 +17,35 @@
     <color name="solar_yellow_soft">#FFF4D6</color>
     <color name="solar_orange">#F97316</color>
     <color name="bottom_nav_inactive">#9CA3AF</color>
+
+    <!-- Grid Operator screens -->
+    <color name="op_primary">#FFB45309</color>
+    <color name="op_primary_dark">#FF92400E</color>
+    <color name="op_header_start">#FFFDE047</color>
+    <color name="op_header_end">#FFFBBF24</color>
+    <color name="op_accent">#FFF59E0B</color>
+    <color name="op_background">#FFF7F5F0</color>
+    <color name="op_surface">#FFFFFFFF</color>
+    <color name="op_border">#FFE7E2D9</color>
+    <color name="op_text">#FF1C1917</color>
+    <color name="op_text_secondary">#FF78716C</color>
+    <color name="op_on_header">#FF1C1917</color>
+    <color name="op_on_header_secondary">#B31C1917</color>
+    <color name="op_header_chip">#1F000000</color>
+
+    <color name="op_amber_bg">#FFFEF3C7</color>
+    <color name="op_amber_fg">#FFB45309</color>
+    <color name="op_green_bg">#FFDCFCE7</color>
+    <color name="op_green_fg">#FF15803D</color>
+    <color name="op_blue_bg">#FFDBEAFE</color>
+    <color name="op_blue_fg">#FF1D4ED8</color>
+    <color name="op_yellow_bg">#FFFEF9C3</color>
+    <color name="op_yellow_fg">#FFA16207</color>
+    <color name="op_orange_bg">#FFFFEDD5</color>
+    <color name="op_orange_fg">#FFC2410C</color>
+    <color name="op_neutral_bg">#FFF1EFEA</color>
+    <color name="op_neutral_fg">#FF57534E</color>
+    <color name="op_red_bg">#FFFEF2F2</color>
+    <color name="op_red_border">#FFFECACA</color>
+    <color name="op_red_fg">#FFB91C1C</color>
 </resources>
