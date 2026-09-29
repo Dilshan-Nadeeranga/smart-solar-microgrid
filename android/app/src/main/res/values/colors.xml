@@ -17,6 +17,7 @@
     <color name="booking_search_stroke">#CBD5E1</color>
     <color name="booking_eyebrow_amber">#D97706</color>
     <color name="booking_card_selected_stroke">#FFD600</color>
+    <color name="booking_pending_stroke">#F59E0B</color>
 
     <color name="dashboard_bg">#F8F9FA</color>
     <color name="dashboard_card">#FFFFFF</color>

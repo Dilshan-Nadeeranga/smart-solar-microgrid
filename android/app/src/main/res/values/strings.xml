@@ -61,6 +61,11 @@
     <string name="booking_create_subtitle_app">Select a station, then pick a date and energy slot. Your NIC is taken from your signed-in account.</string>
     <string name="booking_step_station">Select station</string>
     <string name="booking_step_slot">Date &amp; energy slot</string>
+    <string name="booking_slot_step_description">Choose a day, then pick an open energy slot for your booking.</string>
+    <string name="booking_pick_date_time">Pick date &amp; time</string>
+    <string name="booking_slots_on_day">%1$d slots on this day</string>
+    <string name="booking_energy_slots">Energy slots</string>
+    <string name="booking_slot_available">Available</string>
     <string name="booking_active_stations_count">%1$d active stations</string>
     <string name="booking_choose_station_first">Choose a station to see its energy slots.</string>
     <string name="booking_pick_station">Select a station to continue.</string>
@@ -75,6 +80,9 @@
 
     <string name="booking_summary_eyebrow">New reservation</string>
     <string name="booking_summary_title">Booking summary</string>
+    <string name="booking_summary_description">Review your details before submitting. Your booking will stay pending until a grid operator approves it.</string>
+    <string name="booking_review_details">Review details</string>
+    <string name="booking_label_nic">NIC</string>
     <string name="booking_label_prosumer">Prosumer</string>
     <string name="booking_label_station">Station</string>
     <string name="booking_label_date">Date</string>
@@ -84,9 +92,25 @@
     <string name="booking_status_after">Status after booking</string>
     <string name="booking_status_pending">Pending</string>
     <string name="booking_confirm">Confirm booking</string>
+    <string name="booking_update">Update booking</string>
+    <string name="booking_eyebrow_edit">Edit booking</string>
+    <string name="booking_edit_title">Edit booking</string>
+    <string name="booking_actions_title">Booking</string>
+    <string name="booking_action_edit">Edit booking</string>
+    <string name="booking_action_cancel">Cancel booking</string>
+    <string name="booking_cancel_confirm_title">Cancel this booking?</string>
+    <string name="booking_cancel_confirm_body">The slot will be released and the booking will be marked cancelled. This cannot be undone.</string>
+    <string name="booking_keep">Keep booking</string>
+    <string name="booking_cancelled">Booking cancelled.</string>
+    <string name="booking_updated">Booking updated.</string>
     <string name="booking_policy_note">You can change or cancel until 12 hours before the slot starts. App bookings stay pending until the grid operator approves them.</string>
     <string name="booking_success">Reservation submitted.</string>
     <string name="booking_failed">Could not create reservation.</string>
+    <string name="booking_error_generic_title">Couldn\'t complete booking</string>
+    <string name="booking_error_duplicate_title">Already booked for this slot</string>
+    <string name="booking_error_overlap_title">Overlapping reservation</string>
+    <string name="booking_error_view_bookings">View my bookings</string>
+    <string name="booking_error_change_slot">Choose another slot</string>
 
     <string name="continue_label">Continue</string>
     <string name="back">Back</string>

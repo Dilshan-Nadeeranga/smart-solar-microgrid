@@ -2,7 +2,9 @@ package com.ead.solargrid.ui.home
 
 import android.graphics.Typeface
 import android.os.Bundle
+import android.util.TypedValue
 import androidx.core.content.ContextCompat
+import org.json.JSONObject
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -13,6 +15,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
 import com.ead.solargrid.R
 import com.ead.solargrid.api.ApiClient
@@ -20,7 +23,9 @@ import com.ead.solargrid.database.SessionManager
 import com.ead.solargrid.databinding.FragmentProsumerBookingsBinding
 import com.ead.solargrid.databinding.ItemBookingSlotRowBinding
 import com.ead.solargrid.databinding.ItemBookingStationCardBinding
+import com.ead.solargrid.models.CancelReservationRequest
 import com.ead.solargrid.models.CreateReservationRequest
+import com.ead.solargrid.models.UpdateReservationRequest
 import com.ead.solargrid.models.EnergyBookingSlotDto
 import com.ead.solargrid.models.ReservationItem
 import com.ead.solargrid.models.SolarStation
@@ -50,8 +55,12 @@ class MyReservationsFragment : Fragment() {
     private var selectedSlot: EnergyBookingSlotDto? = null
     private var selectedDayKey: String? = null
     private var submitting = false
+    private var editingReservation: ReservationItem? = null
     private var stationsFetchJob: Job? = null
     private var stationSearchDebounceJob: Job? = null
+    private val slotsByStationId = mutableMapOf<String, List<EnergyBookingSlotDto>>()
+    private var slotsFetchJob: Job? = null
+    private var slotsLoadingStationId: String? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -75,6 +84,7 @@ class MyReservationsFragment : Fragment() {
         binding.btnBookingBack.setOnClickListener { onBackPressed() }
         binding.btnBookingContinue.setOnClickListener { onContinue() }
         binding.btnConfirmBooking.setOnClickListener { confirmBooking() }
+        binding.btnSummaryErrorAction.setOnClickListener { onSummaryErrorAction() }
 
         binding.etStationSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
@@ -122,6 +132,7 @@ class MyReservationsFragment : Fragment() {
     }
 
     private fun startCreateBooking() {
+        editingReservation = null
         selectedStation = null
         selectedSlot = null
         selectedDayKey = null
@@ -130,7 +141,19 @@ class MyReservationsFragment : Fragment() {
         goToStep(Step.STATION)
     }
 
+    private fun startEditBooking(item: ReservationItem) {
+        editingReservation = item
+        selectedSlot = null
+        selectedDayKey = null
+        selectedStation = stations.find { it.id == item.stationId }
+        binding.etStationSearch.text?.clear()
+        binding.btnBookingContinue.isEnabled = selectedStation != null
+        prefetchSlotsForStation(item.stationId)
+        goToStep(Step.STATION)
+    }
+
     private fun returnToBookingsList() {
+        editingReservation = null
         selectedStation = null
         selectedSlot = null
         selectedDayKey = null
@@ -143,7 +166,20 @@ class MyReservationsFragment : Fragment() {
         binding.headerStation.tvStepNumber.text = "1"
         binding.headerStation.tvStepTitle.setText(R.string.booking_available_stations)
         binding.headerSlot.tvStepNumber.text = "2"
-        binding.headerSlot.tvStepTitle.setText(R.string.booking_step_slot)
+        binding.headerSlot.tvStepTitle.setText(R.string.booking_energy_slots)
+
+        binding.headerSummary.tvStepNumber.text = "3"
+        binding.headerSummary.tvStepTitle.setText(R.string.booking_review_details)
+        styleSummaryStepAsideBadge()
+    }
+
+    private fun styleSummaryStepAsideBadge() {
+        val aside = binding.headerSummary.tvStepAside
+        aside.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+        val density = resources.displayMetrics.density
+        val h = (10 * density).toInt()
+        val v = (5 * density).toInt()
+        aside.setPadding(h, v, h, v)
     }
 
     private fun onBackPressed() {
@@ -158,10 +194,12 @@ class MyReservationsFragment : Fragment() {
     private fun onContinue() {
         when (step) {
             Step.STATION -> {
-                if (selectedStation == null) {
+                val station = selectedStation
+                if (station == null) {
                     Toast.makeText(requireContext(), R.string.booking_pick_station, Toast.LENGTH_SHORT).show()
                     return
                 }
+                prefetchSlotsForStation(station.id)
                 goToStep(Step.SLOT)
             }
             Step.SLOT -> {
@@ -206,7 +244,10 @@ class MyReservationsFragment : Fragment() {
             Step.LIST -> loadPendingBookings()
             Step.STATION -> {
                 binding.tvBookingEyebrow.isVisible = true
-                binding.tvBookingEyebrow.setText(R.string.booking_eyebrow_new)
+                binding.tvBookingEyebrow.setText(
+                    if (editingReservation != null) R.string.booking_eyebrow_edit
+                    else R.string.booking_eyebrow_new
+                )
                 binding.tvBookingTitle.setText(R.string.booking_step_station)
                 binding.tvBookingSubtitle.isVisible = false
                 applyStationSearchStroke(binding.etStationSearch.hasFocus())
@@ -221,13 +262,25 @@ class MyReservationsFragment : Fragment() {
                 binding.tvBookingSubtitle.isVisible = true
                 binding.tvBookingSubtitle.text = selectedStation?.name ?: ""
                 binding.tvSlotMonth.text = monthLabel()
-                loadSlotsForStation()
+                presentSlotStep()
             }
             Step.SUMMARY -> {
                 binding.tvBookingEyebrow.isVisible = true
-                binding.tvBookingTitle.setText(R.string.booking_summary_title)
-                binding.tvBookingSubtitle.isVisible = true
-                binding.tvBookingSubtitle.setText(R.string.booking_summary_eyebrow)
+                binding.tvBookingEyebrow.setText(
+                    if (editingReservation != null) R.string.booking_eyebrow_edit
+                    else R.string.booking_eyebrow_new
+                )
+                binding.tvBookingTitle.setText(
+                    if (editingReservation != null) R.string.booking_edit_title
+                    else R.string.booking_summary_title
+                )
+                binding.tvBookingSubtitle.isVisible = false
+                binding.headerSummary.tvStepAside.setText(R.string.booking_summary_eyebrow)
+                binding.btnConfirmBooking.setText(
+                    if (editingReservation != null) R.string.booking_update
+                    else R.string.booking_confirm
+                )
+                populateSummary()
             }
         }
     }
@@ -261,7 +314,74 @@ class MyReservationsFragment : Fragment() {
         } else {
             binding.tvPendingEmpty.isVisible = false
             sorted.forEach { item ->
-                ReservationUi.addPendingBookingCard(binding.pendingList, layoutInflater, item, userName)
+                ReservationUi.addPendingBookingCard(
+                    binding.pendingList,
+                    layoutInflater,
+                    item,
+                    userName
+                ) { openBookingActions(it) }
+            }
+        }
+    }
+
+    private fun openBookingActions(item: ReservationItem) {
+        val blocked = BookingRules.changeBlockedReason(item.status, item.slotStartTimeUtc)
+        if (blocked != null) {
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(item.stationName ?: getString(R.string.booking_actions_title))
+                .setMessage(blocked)
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(item.stationName ?: getString(R.string.booking_actions_title))
+            .setMessage(ReservationUi.formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc))
+            .setPositiveButton(R.string.booking_action_edit) { _, _ -> startEditBooking(item) }
+            .setNegativeButton(R.string.booking_action_cancel) { _, _ -> confirmCancelBooking(item) }
+            .setNeutralButton(android.R.string.cancel, null)
+            .show()
+    }
+
+    private fun confirmCancelBooking(item: ReservationItem) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.booking_cancel_confirm_title)
+            .setMessage(R.string.booking_cancel_confirm_body)
+            .setNegativeButton(R.string.booking_keep, null)
+            .setPositiveButton(R.string.booking_action_cancel) { _, _ -> cancelBooking(item) }
+            .show()
+    }
+
+    private fun cancelBooking(item: ReservationItem) {
+        val blocked = BookingRules.changeBlockedReason(item.status, item.slotStartTimeUtc)
+        if (blocked != null) {
+            Toast.makeText(requireContext(), blocked, Toast.LENGTH_LONG).show()
+            return
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val api = ApiClient.getApiService(requireContext())
+                val response = api.cancelReservation(item.id, CancelReservationRequest())
+                if (_binding == null) return@launch
+                if (response.isSuccessful) {
+                    slotsByStationId.remove(item.stationId)
+                    Toast.makeText(requireContext(), R.string.booking_cancelled, Toast.LENGTH_LONG).show()
+                    loadPendingBookings()
+                } else {
+                    Toast.makeText(
+                        requireContext(),
+                        parseApiErrorMessage(response.errorBody()?.string()),
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: Exception) {
+                if (_binding == null) return@launch
+                Toast.makeText(
+                    requireContext(),
+                    e.message ?: getString(R.string.booking_failed),
+                    Toast.LENGTH_LONG
+                ).show()
             }
         }
     }
@@ -329,6 +449,13 @@ class MyReservationsFragment : Fragment() {
                     return@launch
                 }
                 stations = response.body().orEmpty().filter { it.isActive }
+                val editing = editingReservation
+                if (editing != null && selectedStation == null) {
+                    selectedStation = stations.find { it.id == editing.stationId }
+                    if (_binding != null && step == Step.STATION) {
+                        binding.btnBookingContinue.isEnabled = selectedStation != null
+                    }
+                }
                 if (step == Step.STATION) {
                     updateStationCountLabel()
                     renderStationCards()
@@ -366,6 +493,7 @@ class MyReservationsFragment : Fragment() {
                 selectedSlot = null
                 refreshStationCardSelection()
                 binding.btnBookingContinue.isEnabled = true
+                prefetchSlotsForStation(station.id)
             }
             binding.stationList.addView(cardBinding.root)
         }
@@ -415,26 +543,64 @@ class MyReservationsFragment : Fragment() {
         cardBinding.stationCardRoot.translationZ = if (selected) 2f else 0f
     }
 
-    private fun loadSlotsForStation() {
-        val station = selectedStation ?: return
-        binding.progressSlots.isVisible = true
-        binding.slotList.isVisible = false
-        binding.tvSlotsPlaceholder.isVisible = false
+    private fun prefetchSlotsForStation(stationId: String) {
+        if (slotsByStationId.containsKey(stationId)) return
+        if (slotsLoadingStationId == stationId && slotsFetchJob?.isActive == true) return
+        fetchSlotsForStation(stationId, showBlockingLoader = false)
+    }
 
-        viewLifecycleOwner.lifecycleScope.launch {
+    private fun presentSlotStep() {
+        val station = selectedStation ?: return
+        binding.tvSlotsPlaceholder.isVisible = false
+        val cached = slotsByStationId[station.id]
+        if (cached != null) {
+            loadedSlots = cached
+            binding.progressSlots.isVisible = false
+            buildDayChips()
+            renderSlotsForSelectedDay()
+            return
+        }
+        if (slotsLoadingStationId == station.id && slotsFetchJob?.isActive == true) {
+            binding.progressSlots.isVisible = true
+            binding.slotList.isVisible = loadedSlots.isNotEmpty()
+            return
+        }
+        fetchSlotsForStation(station.id, showBlockingLoader = true)
+    }
+
+    private fun fetchSlotsForStation(stationId: String, showBlockingLoader: Boolean) {
+        if (showBlockingLoader && _binding != null) {
+            binding.progressSlots.isVisible = true
+            binding.slotList.isVisible = loadedSlots.isNotEmpty()
+            binding.tvSlotsPlaceholder.isVisible = false
+            binding.headerSlot.tvStepAside.text = ""
+        }
+
+        slotsLoadingStationId = stationId
+        slotsFetchJob?.cancel()
+        slotsFetchJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.getApiService(requireContext())
-                val result = StationSlotBuilder.loadSelectableSlots(api, station.id)
+                val result = StationSlotBuilder.loadSelectableSlots(api, stationId)
                 if (_binding == null) return@launch
-                loadedSlots = result.slots
-                binding.progressSlots.isVisible = false
-                buildDayChips()
-                renderSlotsForSelectedDay()
+                slotsByStationId[stationId] = result.slots
+                if (step == Step.SLOT && selectedStation?.id == stationId) {
+                    loadedSlots = result.slots
+                    binding.progressSlots.isVisible = false
+                    buildDayChips()
+                    renderSlotsForSelectedDay()
+                }
             } catch (_: Exception) {
                 if (_binding == null) return@launch
                 binding.progressSlots.isVisible = false
-                binding.tvSlotsPlaceholder.isVisible = true
-                binding.tvSlotsPlaceholder.text = getString(R.string.dashboard_load_error)
+                if (step == Step.SLOT && selectedStation?.id == stationId && loadedSlots.isEmpty()) {
+                    binding.tvSlotsPlaceholder.isVisible = true
+                    binding.tvSlotsPlaceholder.text = getString(R.string.dashboard_load_error)
+                }
+            } finally {
+                if (slotsLoadingStationId == stationId) {
+                    slotsLoadingStationId = null
+                }
             }
         }
     }
@@ -442,19 +608,41 @@ class MyReservationsFragment : Fragment() {
     private fun buildDayChips() {
         binding.dayChipRow.removeAllViews()
         val days = (0 until 8).map { LocalDate.now().plusDays(it.toLong()) }
+        if (selectedDayKey == null) {
+            selectedDayKey = firstOpenDayKey() ?: StationSlotBuilder.dayKey(days.first())
+        }
+        val activeKey = selectedDayKey!!
+        val density = resources.displayMetrics.density
         days.forEach { day ->
             val key = StationSlotBuilder.dayKey(day)
+            val selected = activeKey == key
             val chip = TextView(requireContext()).apply {
-                text = day.format(DateTimeFormatter.ofPattern("EEE d", Locale.getDefault()))
-                setPadding(32, 20, 32, 20)
-                setBackgroundResource(R.drawable.bg_solar_icon_circle)
-                setTextColor(resources.getColor(R.color.dashboard_text, null))
-                val selected = (selectedDayKey ?: firstOpenDayKey()) == key
-                if (selected) setTypeface(typeface, Typeface.BOLD)
+                text = day.format(DateTimeFormatter.ofPattern("EEE\nd", Locale.getDefault()))
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                setPadding(
+                    (14 * density).toInt(),
+                    (10 * density).toInt(),
+                    (14 * density).toInt(),
+                    (10 * density).toInt()
+                )
+                setBackgroundResource(
+                    if (selected) R.drawable.bg_booking_day_chip_selected
+                    else R.drawable.bg_booking_day_chip
+                )
+                setTextColor(
+                    ContextCompat.getColor(
+                        requireContext(),
+                        if (selected) R.color.slate_900 else R.color.slate_600
+                    )
+                )
+                setTypeface(typeface, if (selected) Typeface.BOLD else Typeface.NORMAL)
+                textSize = 11f
+                tag = key
                 setOnClickListener {
+                    if (selectedDayKey == key) return@setOnClickListener
                     selectedDayKey = key
                     selectedSlot = null
-                    buildDayChips()
+                    refreshDayChipSelection()
                     renderSlotsForSelectedDay()
                     binding.btnBookingContinue.isEnabled = false
                 }
@@ -462,12 +650,35 @@ class MyReservationsFragment : Fragment() {
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 12 }
+            ).apply { marginEnd = (8 * density).toInt() }
             binding.dayChipRow.addView(chip, lp)
         }
-        if (selectedDayKey == null) {
-            selectedDayKey = firstOpenDayKey() ?: StationSlotBuilder.dayKey(days.first())
+    }
+
+    private fun refreshDayChipSelection() {
+        val key = selectedDayKey ?: return
+        val density = resources.displayMetrics.density
+        for (i in 0 until binding.dayChipRow.childCount) {
+            val chip = binding.dayChipRow.getChildAt(i) as? TextView ?: continue
+            val selected = chip.tag == key
+            chip.setBackgroundResource(
+                if (selected) R.drawable.bg_booking_day_chip_selected
+                else R.drawable.bg_booking_day_chip
+            )
+            chip.setTextColor(
+                ContextCompat.getColor(
+                    requireContext(),
+                    if (selected) R.color.slate_900 else R.color.slate_600
+                )
+            )
+            chip.setTypeface(chip.typeface, if (selected) Typeface.BOLD else Typeface.NORMAL)
         }
+    }
+
+    private fun updateSlotStepAside() {
+        val dayKey = selectedDayKey ?: return
+        val count = loadedSlots.count { StationSlotBuilder.dayKey(it.startTimeUtc) == dayKey }
+        binding.headerSlot.tvStepAside.text = getString(R.string.booking_slots_on_day, count)
     }
 
     private fun firstOpenDayKey(): String? {
@@ -486,6 +697,7 @@ class MyReservationsFragment : Fragment() {
         val dayKey = selectedDayKey ?: return
         val now = System.currentTimeMillis()
         binding.slotList.removeAllViews()
+        updateSlotStepAside()
 
         val entries = loadedSlots.filter { StationSlotBuilder.dayKey(it.startTimeUtc) == dayKey }
         if (entries.isEmpty()) {
@@ -501,22 +713,58 @@ class MyReservationsFragment : Fragment() {
         entries.forEach { slot ->
             val availability = BookingRules.slotAvailability(slot, station, now)
             val row = ItemBookingSlotRowBinding.inflate(inflater, binding.slotList, false)
+            val slotKey = "${slot.id}|${slot.startTimeUtc}"
+            val selected = selectedSlot?.id == slot.id &&
+                selectedSlot?.startTimeUtc == slot.startTimeUtc
             row.tvSlotTime.text = ReservationUi.formatSlotRange(slot.startTimeUtc, slot.endTimeUtc)
-            row.tvSlotMeta.text = if (availability.bookable) {
-                getString(R.string.booking_spaces_remaining, slot.remainingBookings)
+            if (availability.bookable) {
+                row.tvSlotAvailability.setText(R.string.booking_slot_available)
+                row.tvSlotAvailability.setBackgroundResource(R.drawable.bg_slot_available_badge)
+                row.tvSlotAvailability.setTextColor(0xFF065F46.toInt())
+                row.tvSlotMeta.text = getString(R.string.booking_spaces_remaining, slot.remainingBookings)
             } else {
-                availability.reason ?: getString(R.string.booking_unavailable)
+                row.tvSlotAvailability.text = getString(R.string.booking_unavailable)
+                row.tvSlotAvailability.setBackgroundResource(R.drawable.bg_station_count_badge)
+                row.tvSlotAvailability.setTextColor(ContextCompat.getColor(requireContext(), R.color.slate_600))
+                row.tvSlotMeta.text = availability.reason ?: getString(R.string.booking_unavailable)
             }
-            row.radioSlot.isChecked =
-                selectedSlot?.id == slot.id && selectedSlot?.startTimeUtc == slot.startTimeUtc
-            row.root.alpha = if (availability.bookable) 1f else 0.5f
+            applySlotCardSelection(row, selected && availability.bookable)
+            row.root.alpha = if (availability.bookable) 1f else 0.55f
+            row.root.tag = slotKey
+            row.root.isClickable = availability.bookable
             row.root.setOnClickListener {
                 if (!availability.bookable) return@setOnClickListener
                 selectedSlot = slot
-                renderSlotsForSelectedDay()
+                refreshSlotCardSelection()
                 binding.btnBookingContinue.isEnabled = true
             }
             binding.slotList.addView(row.root)
+        }
+    }
+
+    private fun applySlotCardSelection(row: ItemBookingSlotRowBinding, selected: Boolean) {
+        row.radioInner.isVisible = selected
+        row.radioOuter.setBackgroundResource(
+            if (selected) R.drawable.bg_station_radio_outer_selected
+            else R.drawable.bg_station_radio_outer
+        )
+        val density = resources.displayMetrics.density
+        val strokeDp = if (selected) 3.5f else 1f
+        row.slotCardRoot.strokeWidth = (strokeDp * density).toInt()
+        row.slotCardRoot.strokeColor = ContextCompat.getColor(
+            requireContext(),
+            if (selected) R.color.booking_card_selected_stroke else R.color.booking_search_stroke
+        )
+        row.slotCardRoot.cardElevation = if (selected) 8f else 2f
+    }
+
+    private fun refreshSlotCardSelection() {
+        val selected = selectedSlot ?: return
+        val selectedKey = "${selected.id}|${selected.startTimeUtc}"
+        for (i in 0 until binding.slotList.childCount) {
+            val root = binding.slotList.getChildAt(i)
+            val isSelected = root.tag == selectedKey
+            applySlotCardSelection(ItemBookingSlotRowBinding.bind(root), isSelected)
         }
     }
 
@@ -524,32 +772,93 @@ class MyReservationsFragment : Fragment() {
         val user = SessionManager(requireContext()).getUserSession()
         val station = selectedStation
         val slot = selectedSlot
-        binding.tvSummaryProsumer.text = getString(
-            R.string.booking_summary_line,
-            getString(R.string.booking_label_prosumer),
-            "${user?.name ?: "—"}\nNIC ${user?.nic ?: "—"}"
-        )
-        binding.tvSummaryStation.text = getString(
-            R.string.booking_summary_line,
-            getString(R.string.booking_label_station),
-            "${station?.name ?: "—"}\n${station?.address ?: ""}"
-        )
-        binding.tvSummaryDate.text = getString(
-            R.string.booking_summary_line,
-            getString(R.string.booking_label_date),
-            formatLongDate(slot?.startTimeUtc)
-        )
-        binding.tvSummaryTime.text = getString(
-            R.string.booking_summary_line,
-            getString(R.string.booking_label_time),
+
+        binding.rowSummaryProsumer.tvSummaryLabel.setText(R.string.booking_label_prosumer)
+        binding.rowSummaryProsumer.tvSummaryValue.text = user?.name ?: "—"
+
+        binding.rowSummaryNic.tvSummaryLabel.setText(R.string.booking_label_nic)
+        binding.rowSummaryNic.tvSummaryValue.text = user?.nic ?: "—"
+
+        binding.rowSummaryStation.tvSummaryLabel.setText(R.string.booking_label_station)
+        binding.rowSummaryStation.tvSummaryValue.text = station?.name ?: "—"
+        binding.tvSummaryStationAddress.text = station?.address ?: "—"
+
+        binding.rowSummaryDate.tvSummaryLabel.setText(R.string.booking_label_date)
+        binding.rowSummaryDate.tvSummaryValue.text = formatLongDate(slot?.startTimeUtc)
+
+        binding.rowSummaryTime.tvSummaryLabel.setText(R.string.booking_label_time)
+        binding.rowSummaryTime.tvSummaryValue.text =
             ReservationUi.formatSlotRange(slot?.startTimeUtc, slot?.endTimeUtc)
-        )
-        binding.tvSummaryAvailability.text = getString(
-            R.string.booking_summary_line,
-            getString(R.string.booking_label_availability),
+
+        binding.rowSummaryAvailability.tvSummaryLabel.setText(R.string.booking_label_availability)
+        binding.rowSummaryAvailability.tvSummaryValue.text =
             slot?.let { getString(R.string.booking_spaces_remaining, it.remainingBookings) } ?: "—"
-        )
-        binding.tvSummaryError.isVisible = false
+
+        hideSummaryBookingError()
+    }
+
+    private enum class SummaryErrorAction { NONE, VIEW_BOOKINGS, CHANGE_SLOT }
+
+    private var summaryErrorAction = SummaryErrorAction.NONE
+
+    private fun hideSummaryBookingError() {
+        if (_binding == null) return
+        binding.summaryErrorCard.isVisible = false
+        summaryErrorAction = SummaryErrorAction.NONE
+    }
+
+    private fun showSummaryBookingError(rawMessage: String?) {
+        val message = parseApiErrorMessage(rawMessage)
+        val lower = message.lowercase(Locale.getDefault())
+        val isDuplicate = "already have an active reservation" in lower
+        val isOverlap = "overlaps an existing" in lower
+        val title = when {
+            isDuplicate -> getString(R.string.booking_error_duplicate_title)
+            isOverlap -> getString(R.string.booking_error_overlap_title)
+            else -> getString(R.string.booking_error_generic_title)
+        }
+        binding.tvSummaryErrorTitle.text = title
+        binding.tvSummaryErrorBody.text = message
+        summaryErrorAction = when {
+            isDuplicate -> SummaryErrorAction.VIEW_BOOKINGS
+            isOverlap -> SummaryErrorAction.CHANGE_SLOT
+            else -> SummaryErrorAction.NONE
+        }
+        if (summaryErrorAction != SummaryErrorAction.NONE) {
+            binding.btnSummaryErrorAction.isVisible = true
+            binding.btnSummaryErrorAction.text = when (summaryErrorAction) {
+                SummaryErrorAction.VIEW_BOOKINGS -> getString(R.string.booking_error_view_bookings)
+                SummaryErrorAction.CHANGE_SLOT -> getString(R.string.booking_error_change_slot)
+                else -> ""
+            }
+        } else {
+            binding.btnSummaryErrorAction.isVisible = false
+        }
+        binding.summaryErrorCard.isVisible = true
+        binding.summaryErrorCard.post {
+            binding.stepSummary.smoothScrollTo(0, binding.summaryErrorCard.top)
+        }
+    }
+
+    private fun onSummaryErrorAction() {
+        when (summaryErrorAction) {
+            SummaryErrorAction.VIEW_BOOKINGS -> returnToBookingsList()
+            SummaryErrorAction.CHANGE_SLOT -> {
+                hideSummaryBookingError()
+                goToStep(Step.SLOT)
+            }
+            SummaryErrorAction.NONE -> Unit
+        }
+    }
+
+    private fun parseApiErrorMessage(raw: String?): String {
+        if (raw.isNullOrBlank()) return getString(R.string.booking_failed)
+        val trimmed = raw.trim()
+        return try {
+            JSONObject(trimmed).optString("message").takeIf { it.isNotBlank() } ?: trimmed
+        } catch (_: Exception) {
+            trimmed.removePrefix("\"").removeSuffix("\"")
+        }
     }
 
     private fun confirmBooking() {
@@ -559,36 +868,45 @@ class MyReservationsFragment : Fragment() {
 
         submitting = true
         binding.btnConfirmBooking.isEnabled = false
-        binding.tvSummaryError.isVisible = false
+        hideSummaryBookingError()
 
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.getApiService(requireContext())
                 val slotId = StationSlotBuilder.ensureStoredSlotId(api, station.id, slot)
-                val response = api.createReservation(
-                    CreateReservationRequest(slotId = slotId, stationId = station.id)
-                )
+                val editing = editingReservation
+                val response = if (editing != null) {
+                    api.updateReservation(
+                        editing.id,
+                        UpdateReservationRequest(slotId = slotId, stationId = station.id)
+                    )
+                } else {
+                    api.createReservation(
+                        CreateReservationRequest(slotId = slotId, stationId = station.id)
+                    )
+                }
                 if (_binding == null) return@launch
                 submitting = false
                 binding.btnConfirmBooking.isEnabled = true
                 if (response.isSuccessful) {
+                    slotsByStationId.remove(station.id)
+                    editing?.stationId?.let { slotsByStationId.remove(it) }
                     Toast.makeText(
                         requireContext(),
-                        response.body()?.message ?: getString(R.string.booking_success),
+                        response.body()?.message ?: getString(
+                            if (editing != null) R.string.booking_updated else R.string.booking_success
+                        ),
                         Toast.LENGTH_LONG
                     ).show()
                     returnToBookingsList()
                 } else {
-                    binding.tvSummaryError.isVisible = true
-                    binding.tvSummaryError.text =
-                        response.errorBody()?.string() ?: getString(R.string.booking_failed)
+                    showSummaryBookingError(response.errorBody()?.string())
                 }
             } catch (e: Exception) {
                 if (_binding == null) return@launch
                 submitting = false
                 binding.btnConfirmBooking.isEnabled = true
-                binding.tvSummaryError.isVisible = true
-                binding.tvSummaryError.text = e.message ?: getString(R.string.booking_failed)
+                showSummaryBookingError(e.message)
             }
         }
     }

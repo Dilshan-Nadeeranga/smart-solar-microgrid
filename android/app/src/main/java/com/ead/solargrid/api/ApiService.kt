@@ -89,6 +89,18 @@ interface ApiService {
     @POST("api/reservations")
     suspend fun createReservation(@Body body: CreateReservationRequest): Response<CreateReservationResponse>
 
+    @PUT("api/reservations/{id}")
+    suspend fun updateReservation(
+        @Path("id") id: String,
+        @Body body: UpdateReservationRequest
+    ): Response<CreateReservationResponse>
+
+    @PATCH("api/reservations/{id}/cancel")
+    suspend fun cancelReservation(
+        @Path("id") id: String,
+        @Body body: CancelReservationRequest
+    ): Response<CreateReservationResponse>
+
     /** Prosumer only, for their own Approved reservation. */
     @GET("api/reservations/{id}/qr")
     suspend fun getReservationQr(@Path("id") id: String): Response<QrCodeResponse>

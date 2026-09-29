@@ -65,7 +65,8 @@ object ReservationUi {
         parent: LinearLayout,
         inflater: LayoutInflater,
         item: ReservationItem,
-        prosumerName: String?
+        prosumerName: String?,
+        onClick: ((ReservationItem) -> Unit)? = null
     ) {
         val card = ItemPendingBookingCardBinding.inflate(inflater, parent, false)
         card.tvCardTitle.text = item.stationName ?: item.stationId
@@ -75,6 +76,11 @@ object ReservationUi {
         val name = prosumerName?.trim().orEmpty().ifBlank { "Prosumer" }
         card.tvCardProsumer.text = name
         card.tvCardInitials.text = initials(name)
+        if (onClick != null) {
+            card.root.isClickable = true
+            card.root.isFocusable = true
+            card.root.setOnClickListener { onClick(item) }
+        }
         parent.addView(card.root)
     }
 
