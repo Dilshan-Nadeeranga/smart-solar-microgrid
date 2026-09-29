@@ -20,6 +20,7 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
     private val bookingsFragment = MyReservationsFragment()
     private val historyFragment = BookingHistoryFragment()
     private val profileFragment = ProfileFragment()
+    private var pendingNewBooking = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,6 +64,17 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
 
     override fun openBookingsTab() {
         binding.bottomNav.selectedItemId = R.id.nav_bookings
+    }
+
+    override fun openNewBookingFlow() {
+        pendingNewBooking = true
+        openBookingsTab()
+    }
+
+    fun consumePendingNewBooking(): Boolean {
+        if (!pendingNewBooking) return false
+        pendingNewBooking = false
+        return true
     }
 
     override fun showNearbyStationsMessage() {
