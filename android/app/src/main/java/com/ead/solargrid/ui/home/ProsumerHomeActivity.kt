@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.ead.solargrid.R
 import com.ead.solargrid.databinding.ActivityProsumerHomeBinding
+import com.ead.solargrid.ui.SystemBarUtils
 
 class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
 
@@ -26,6 +27,15 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
         super.onCreate(savedInstanceState)
         binding = ActivityProsumerHomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        SystemBarUtils.enableEdgeToEdge(this, binding.root)
+        SystemBarUtils.applyYellowStatusBarShell(
+            root = binding.root,
+            statusBarScrim = binding.statusBarScrim,
+            bottomTarget = binding.bottomNav,
+            horizontalTarget = binding.root
+        )
+
+        binding.brandHeader.btnBrandProfile.setOnClickListener { openProfileTab() }
 
         val tabId = savedInstanceState?.getInt(KEY_SELECTED_TAB) ?: R.id.nav_home
 
@@ -70,6 +80,10 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
     override fun openNewBookingFlow() {
         pendingNewBooking = true
         openBookingsTab()
+    }
+
+    override fun openProfileTab() {
+        binding.bottomNav.selectedItemId = R.id.nav_profile
     }
 
     fun consumePendingNewBooking(): Boolean {

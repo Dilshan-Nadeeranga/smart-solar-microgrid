@@ -25,16 +25,21 @@
             android:value="${MAPS_API_KEY}" />
 
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.SplashActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.SolarGrid">
+            android:theme="@style/Theme.SolarGrid.Splash">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SolarGrid" />
 
         <activity android:name=".ui.auth.LoginActivity" android:theme="@style/Theme.SolarGrid" />
         <activity android:name=".ui.auth.RegisterActivity" android:theme="@style/Theme.SolarGrid" />

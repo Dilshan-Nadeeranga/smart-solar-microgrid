@@ -21,6 +21,7 @@ import com.ead.solargrid.databinding.ItemBookingSlotRowBinding
 import com.ead.solargrid.databinding.ItemBookingStationCardBinding
 import com.ead.solargrid.models.CreateReservationRequest
 import com.ead.solargrid.models.EnergyBookingSlotDto
+import com.ead.solargrid.models.ReservationItem
 import com.ead.solargrid.models.SolarStation
 import com.ead.solargrid.ui.home.booking.BookingRules
 import com.ead.solargrid.ui.home.booking.StationSlotBuilder
@@ -35,10 +36,12 @@ class MyReservationsFragment : Fragment() {
     private var _binding: FragmentProsumerBookingsBinding? = null
     private val binding get() = _binding!!
 
-    private enum class Step { STATION, SLOT, SUMMARY }
+    private enum class Step { LIST, STATION, SLOT, SUMMARY }
 
-    private var step = Step.STATION
+    private var step = Step.LIST
     private var stations: List<SolarStation> = emptyList()
+    private var pendingItems: List<ReservationItem> = emptyList()
+    private var pendingSortNewestFirst = true
     private var selectedStation: SolarStation? = null
     private var loadedSlots: List<EnergyBookingSlotDto> = emptyList()
     private var selectedSlot: EnergyBookingSlotDto? = null
@@ -59,6 +62,11 @@ class MyReservationsFragment : Fragment() {
 
         setupStepHeaders()
 
+        binding.btnCreateBooking.setOnClickListener { startCreateBooking() }
+        binding.btnPendingFilter.setOnClickListener {
+            pendingSortNewestFirst = !pendingSortNewestFirst
+            renderPendingBookings()
+        }
         binding.btnBookingBack.setOnClickListener { onBackPressed() }
         binding.btnBookingContinue.setOnClickListener { onContinue() }
         binding.btnConfirmBooking.setOnClickListener { confirmBooking() }
@@ -72,31 +80,49 @@ class MyReservationsFragment : Fragment() {
             }
         })
 
-        showStep(Step.STATION)
+        showStep(Step.LIST)
     }
 
     override fun onHiddenChanged(hidden: Boolean) {
         super.onHiddenChanged(hidden)
         if (!hidden) {
-            (activity as? ProsumerHomeActivity)?.consumePendingNewBooking()
-            resetToStationPicker()
+            onBookingsTabSelected()
         }
     }
 
     override fun onResume() {
         super.onResume()
-        if (!isHidden) {
-            (activity as? ProsumerHomeActivity)?.consumePendingNewBooking()
+        if (!isHidden && step == Step.LIST) {
+            loadPendingBookings()
         }
     }
 
-    private fun resetToStationPicker() {
+    private fun onBookingsTabSelected() {
+        if ((activity as? ProsumerHomeActivity)?.consumePendingNewBooking() == true) {
+            startCreateBooking()
+            return
+        }
+        if (step == Step.LIST) {
+            loadPendingBookings()
+        }
+    }
+
+    private fun startCreateBooking() {
         selectedStation = null
         selectedSlot = null
         selectedDayKey = null
         binding.etStationSearch.text?.clear()
         binding.btnBookingContinue.isEnabled = false
         goToStep(Step.STATION)
+    }
+
+    private fun returnToBookingsList() {
+        selectedStation = null
+        selectedSlot = null
+        selectedDayKey = null
+        binding.etStationSearch.text?.clear()
+        binding.btnBookingContinue.isEnabled = false
+        goToStep(Step.LIST)
     }
 
     private fun setupStepHeaders() {
@@ -108,9 +134,10 @@ class MyReservationsFragment : Fragment() {
 
     private fun onBackPressed() {
         when (step) {
+            Step.STATION -> returnToBookingsList()
             Step.SLOT -> goToStep(Step.STATION)
             Step.SUMMARY -> goToStep(Step.SLOT)
-            Step.STATION -> Unit
+            Step.LIST -> Unit
         }
     }
 
@@ -141,12 +168,15 @@ class MyReservationsFragment : Fragment() {
     }
 
     private fun showStep(current: Step) {
+        val isList = current == Step.LIST
+        binding.stepList.isVisible = isList
         binding.stepStation.isVisible = current == Step.STATION
         binding.stepSlot.isVisible = current == Step.SLOT
         binding.stepSummary.isVisible = current == Step.SUMMARY
 
+        binding.wizardToolbar.isVisible = !isList
         binding.stationSearchLayout.isVisible = current == Step.STATION
-        binding.btnBookingBack.isVisible = current == Step.SLOT || current == Step.SUMMARY
+        binding.btnBookingBack.isVisible = current != Step.LIST
         binding.btnBookingContinue.isVisible = current == Step.STATION || current == Step.SLOT
         binding.btnBookingContinue.isEnabled = when (current) {
             Step.STATION -> selectedStation != null
@@ -155,14 +185,13 @@ class MyReservationsFragment : Fragment() {
         }
 
         when (current) {
+            Step.LIST -> loadPendingBookings()
             Step.STATION -> {
                 binding.tvBookingEyebrow.isVisible = true
                 binding.tvBookingEyebrow.setText(R.string.booking_eyebrow_new)
                 binding.tvBookingTitle.setText(R.string.booking_step_station)
                 binding.tvBookingSubtitle.setText(R.string.booking_create_subtitle_app)
-                if (stations.isEmpty()) {
-                    loadStations()
-                } else {
+                if (stations.isEmpty()) loadStations() else {
                     updateStationCountLabel()
                     renderStationCards()
                 }
@@ -185,6 +214,40 @@ class MyReservationsFragment : Fragment() {
         }
     }
 
+    private fun loadPendingBookings() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val api = ApiClient.getApiService(requireContext())
+                pendingItems = api.getMyReservations(status = "Pending", pageSize = 50).body()?.items.orEmpty()
+                if (_binding == null) return@launch
+                renderPendingBookings()
+            } catch (_: Exception) {
+                if (_binding == null) return@launch
+                binding.tvPendingEmpty.isVisible = true
+                binding.tvPendingEmpty.text = getString(R.string.dashboard_load_error)
+            }
+        }
+    }
+
+    private fun renderPendingBookings() {
+        val userName = SessionManager(requireContext()).getUserSession()?.name
+        val sorted = pendingItems.sortedBy { item ->
+            val t = BookingRules.parseInstant(item.slotStartTimeUtc)?.toEpochMilli() ?: 0L
+            if (pendingSortNewestFirst) -t else t
+        }
+        binding.tvPendingCount.text = sorted.size.toString()
+        binding.pendingList.removeAllViews()
+        if (sorted.isEmpty()) {
+            binding.tvPendingEmpty.isVisible = true
+            binding.tvPendingEmpty.setText(R.string.bookings_pending_empty)
+        } else {
+            binding.tvPendingEmpty.isVisible = false
+            sorted.forEach { item ->
+                ReservationUi.addPendingBookingCard(binding.pendingList, layoutInflater, item, userName)
+            }
+        }
+    }
+
     private fun filteredStations(): List<SolarStation> {
         val query = binding.etStationSearch.text?.toString()?.trim()?.lowercase(Locale.getDefault()).orEmpty()
         if (query.isEmpty()) return stations
@@ -195,9 +258,8 @@ class MyReservationsFragment : Fragment() {
     }
 
     private fun updateStationCountLabel() {
-        val list = filteredStations()
         binding.headerStation.tvStepAside.text =
-            getString(R.string.booking_active_stations_count, list.size)
+            getString(R.string.booking_active_stations_count, filteredStations().size)
     }
 
     private fun loadStations() {
@@ -416,7 +478,7 @@ class MyReservationsFragment : Fragment() {
                         response.body()?.message ?: getString(R.string.booking_success),
                         Toast.LENGTH_LONG
                     ).show()
-                    resetToStationPicker()
+                    returnToBookingsList()
                 } else {
                     binding.tvSummaryError.isVisible = true
                     binding.tvSummaryError.text =
