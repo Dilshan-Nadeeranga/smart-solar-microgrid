@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 
 object ApiClient {
     // 192.168.1.4 is your PC's IP address on the Wi-Fi network
-    private const val BASE_URL = "http://192.168.1.4:5257/"
+    private const val BASE_URL = "http://13.48.85.111:8080/"
 
     private var retrofit: Retrofit? = null
 

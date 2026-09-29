@@ -1,3 +1,48 @@
 <resources>
     <string name="app_name">SolarGrid</string>
+
+    <!-- Grid Operator home -->
+    <string name="operator_role_label">Grid Operator</string>
+    <string name="operator_greeting_morning">Good morning</string>
+    <string name="operator_greeting_afternoon">Good afternoon</string>
+    <string name="operator_greeting_evening">Good evening</string>
+    <string name="operator_greeting_with_name">%1$s, %2$s</string>
+    <string name="operator_subtitle">Here\'s what needs your attention today</string>
+    <string name="operator_updated_never">Loading latest data…</string>
+    <string name="operator_updated_just_now">Updated just now</string>
+    <string name="operator_updated_ago">Updated %1$s</string>
+    <string name="operator_refreshing">Refreshing…</string>
+    <string name="operator_refresh">Refresh</string>
+    <string name="operator_logout">Log out</string>
+    <string name="operator_logout_title">Log out?</string>
+    <string name="operator_logout_message">You\'ll need to sign in again to manage reservations.</string>
+    <string name="operator_cancel">Cancel</string>
+    <string name="operator_retry">Retry</string>
+    <string name="operator_session_expired">Your session has expired. Please log in again.</string>
+    <string name="operator_coming_soon">%1$s is coming soon</string>
+    <string name="operator_value_placeholder">—</string>
+    <string name="operator_value_kw">%1$s kW</string>
+    <string name="operator_card_description">%1$s: %2$s</string>
+
+    <string name="operator_section_attention">Needs your attention</string>
+    <string name="operator_section_today">Today\'s operations</string>
+    <string name="operator_section_infrastructure">Infrastructure</string>
+    <string name="operator_section_actions">Quick actions</string>
+
+    <string name="operator_stat_pending">Pending approvals</string>
+    <string name="operator_stat_pending_hint">Awaiting review</string>
+    <string name="operator_stat_upcoming">Upcoming approved</string>
+    <string name="operator_stat_upcoming_hint">Future slots</string>
+    <string name="operator_stat_today">Reservations</string>
+    <string name="operator_stat_today_hint">Slots starting today (UTC)</string>
+    <string name="operator_stat_completed">Completed</string>
+    <string name="operator_stat_completed_hint">Energy transfers done</string>
+    <string name="operator_stat_stations">Stations</string>
+    <string name="operator_stat_output">Output</string>
+    <string name="operator_stat_battery">Battery slots</string>
+
+    <string name="operator_action_scan">Scan QR</string>
+    <string name="operator_action_pending">Pending approvals</string>
+    <string name="operator_action_reservations">All reservations</string>
+    <string name="operator_action_stations">Stations</string>
 </resources>

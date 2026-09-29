@@ -6,6 +6,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.ead.solargrid.database.SessionManager
 import com.ead.solargrid.ui.auth.LoginActivity
 import com.ead.solargrid.ui.home.ProsumerHomeActivity
+import com.ead.solargrid.ui.operator.GridOperatorHomeActivity
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -17,11 +18,10 @@ class MainActivity : AppCompatActivity() {
         if (token.isNullOrEmpty()) {
             startActivity(Intent(this, LoginActivity::class.java))
         } else {
-            val role = sessionManager.getRole()
-            if (role == "PROSUMER") {
-                startActivity(Intent(this, ProsumerHomeActivity::class.java))
-            } else {
-                startActivity(Intent(this, LoginActivity::class.java))
+            when (sessionManager.getRole()) {
+                "PROSUMER" -> startActivity(Intent(this, ProsumerHomeActivity::class.java))
+                "GRID_OPERATOR" -> startActivity(Intent(this, GridOperatorHomeActivity::class.java))
+                else -> startActivity(Intent(this, LoginActivity::class.java))
             }
         }
         finish()
