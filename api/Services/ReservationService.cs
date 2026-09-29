@@ -245,7 +245,7 @@ public class ReservationService
             {
                 throw new ReservationException(
                     ReservationErrorKind.BadRequest,
-                    $"Cannot cancel a {existing.Status} reservation.");
+                    "This booking can no longer be changed.");
             }
 
             if (expectedVersion.HasValue && existing.Version != expectedVersion.Value)
@@ -418,7 +418,7 @@ public class ReservationService
         {
             throw new ReservationException(
                 ReservationErrorKind.BadRequest,
-                $"Cannot update a {reservation.Status} reservation.");
+                "This booking can no longer be changed.");
         }
     }
 
@@ -538,7 +538,7 @@ public class ReservationService
         {
             throw new ReservationException(
                 ReservationErrorKind.BadRequest,
-                "Changes require at least 12 hours before the slot start time.");
+                "Changes require at least 12 hours' notice.");
         }
     }
 
