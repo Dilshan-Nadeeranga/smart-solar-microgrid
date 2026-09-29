@@ -46,6 +46,12 @@
 
     <string name="solarix_brand">Solarix</string>
     <string name="solarix_splash_tagline">Smart solar microgrid. Book energy near you.</string>
+    <string name="login_tagline">Sign in to book solar energy near you</string>
+    <string name="login_nic">NIC</string>
+    <string name="login_password">Password</string>
+    <string name="login_button">Login</string>
+    <string name="login_no_account">Don\'t have an account?</string>
+    <string name="login_register">Register</string>
     <string name="bookings_title">Bookings</string>
     <string name="bookings_subtitle">Pending approvals &amp; reservations</string>
     <string name="bookings_filter">Filter</string>
