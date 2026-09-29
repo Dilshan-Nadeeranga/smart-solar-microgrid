@@ -1,5 +1,9 @@
 package com.ead.solargrid.models
 
+/**
+ * GET /api/reservations/summary.
+ * Scope is "All" for staff (operational counts) and "Own" for a prosumer.
+ */
 data class ReservationSummaryResponse(
     val message: String?,
     val scope: String?,
@@ -7,6 +11,7 @@ data class ReservationSummaryResponse(
     val approvedFutureCount: Long
 )
 
+/** GET /api/reservations and /api/reservations/mine page. */
 data class ReservationPageResponse(
     val message: String?,
     val items: List<ReservationItem>?,

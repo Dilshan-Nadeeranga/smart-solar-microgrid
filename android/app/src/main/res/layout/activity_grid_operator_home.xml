@@ -1,0 +1,336 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/op_background"
+    tools:context=".ui.operator.GridOperatorHomeActivity">
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/scrollView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Header. Top padding is extended by the status bar inset in code. -->
+            <LinearLayout
+                android:id="@+id/header"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_operator_header"
+                android:orientation="vertical"
+                android:paddingStart="20dp"
+                android:paddingTop="16dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="52dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_operator_role_chip"
+                        android:drawablePadding="6dp"
+                        android:gravity="center_vertical"
+                        android:letterSpacing="0.06"
+                        android:paddingStart="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingEnd="12dp"
+                        android:paddingBottom="4dp"
+                        android:text="@string/operator_role_label"
+                        android:textAllCaps="true"
+                        android:textColor="@color/op_on_header"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        app:drawableStartCompat="@drawable/ic_op_bolt"
+                        app:drawableTint="@color/op_on_header" />
+
+                    <Space
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <ImageButton
+                        android:id="@+id/btnRefresh"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/operator_refresh"
+                        android:src="@drawable/ic_op_refresh"
+                        android:tooltipText="@string/operator_refresh"
+                        app:tint="@color/op_on_header" />
+
+                    <ImageButton
+                        android:id="@+id/btnLogout"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/operator_logout"
+                        android:src="@drawable/ic_op_logout"
+                        android:tooltipText="@string/operator_logout"
+                        app:tint="@color/op_on_header" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvGreeting"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginEnd="8dp"
+                    android:accessibilityHeading="true"
+                    android:ellipsize="end"
+                    android:maxLines="2"
+                    android:textColor="@color/op_on_header"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    tools:text="Good morning, Kamal" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginEnd="8dp"
+                    android:text="@string/operator_subtitle"
+                    android:textColor="@color/op_on_header_secondary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvUpdated"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:drawablePadding="6dp"
+                    android:gravity="center_vertical"
+                    android:text="@string/operator_updated_never"
+                    android:textColor="@color/op_on_header_secondary"
+                    android:textSize="12sp"
+                    app:drawableStartCompat="@drawable/ic_op_schedule"
+                    app:drawableTint="@color/op_on_header_secondary" />
+            </LinearLayout>
+
+            <!-- Content overlaps the bottom of the header. Bottom padding is extended by the nav bar inset in code. -->
+            <LinearLayout
+                android:id="@+id/content"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="-36dp"
+                android:orientation="vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingBottom="24dp">
+
+                <!-- Error banner, shown when a refresh fails. Last good numbers stay visible. -->
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/errorCard"
+                    style="@style/OperatorCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="@color/op_red_bg"
+                    app:strokeColor="@color/op_red_border"
+                    tools:visibility="visible">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingStart="14dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="4dp"
+                        android:paddingBottom="6dp">
+
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:importantForAccessibility="no"
+                            android:src="@drawable/ic_op_error"
+                            app:tint="@color/op_red_fg" />
+
+                        <TextView
+                            android:id="@+id/tvError"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:accessibilityLiveRegion="polite"
+                            android:textColor="@color/op_red_fg"
+                            android:textSize="13sp"
+                            tools:text="Can't reach the server. Check your connection and try again." />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnRetry"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/operator_retry"
+                            android:textColor="@color/op_red_fg" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <!-- Needs your attention -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/cardPending"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/cardUpcoming"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/OperatorSectionLabel"
+                    android:text="@string/operator_section_today" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/cardToday"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/cardCompleted"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/OperatorSectionLabel"
+                    android:text="@string/operator_section_infrastructure" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/cardStations"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="5dp"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/cardOutput"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="5dp"
+                        android:layout_marginEnd="5dp"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/cardBattery"
+                        layout="@layout/item_operator_stat"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="5dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <TextView
+                    style="@style/OperatorSectionLabel"
+                    android:text="@string/operator_section_actions" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/actionScan"
+                        layout="@layout/item_operator_action"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/actionPending"
+                        layout="@layout/item_operator_action"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <include
+                        android:id="@+id/actionReservations"
+                        layout="@layout/item_operator_action"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginEnd="6dp"
+                        android:layout_weight="1" />
+
+                    <include
+                        android:id="@+id/actionStations"
+                        layout="@layout/item_operator_action"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Thin loading bar pinned under the status bar (top margin set from insets in code). -->
+    <com.google.android.material.progressindicator.LinearProgressIndicator
+        android:id="@+id/progress"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:indeterminate="true"
+        android:visibility="invisible"
+        app:indicatorColor="@color/op_primary_dark"
+        app:trackColor="@android:color/transparent"
+        app:trackThickness="3dp" />
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
