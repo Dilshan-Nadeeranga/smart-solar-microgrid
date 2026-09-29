@@ -33,8 +33,18 @@ public class PendingRegistrationRepository
         await _collection.ReplaceOneAsync(r => r.Id == registration.Id, registration);
     }
 
+    public async Task DeleteByNicOrEmailAsync(string nic, string email)
+    {
+        await _collection.DeleteManyAsync(r => r.NIC == nic || r.Email == email);
+    }
+
     public async Task DeleteAsync(string id)
     {
         await _collection.DeleteOneAsync(r => r.Id == id);
+    }
+
+    public async Task<List<PendingRegistration>> GetEmailVerifiedAsync()
+    {
+        return await _collection.Find(r => r.IsEmailVerified).ToListAsync();
     }
 }

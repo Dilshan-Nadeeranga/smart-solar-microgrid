@@ -13,4 +13,6 @@ public class LoginResponse
     public string Role { get; set; } = string.Empty;
 
     public string AccountStatus { get; set; } = string.Empty;
+
+    public string? RegistrationId { get; set; }
 }
