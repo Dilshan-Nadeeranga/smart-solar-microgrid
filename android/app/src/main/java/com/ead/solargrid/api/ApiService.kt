@@ -61,6 +61,13 @@ interface ApiService {
     @GET("api/stations")
     suspend fun getStations(): Response<List<SolarStation>>
 
+    @GET("api/stations/nearby")
+    suspend fun getNearbyStations(
+        @Query("latitude") latitude: Double,
+        @Query("longitude") longitude: Double,
+        @Query("radiusKm") radiusKm: Double = 50.0
+    ): Response<List<NearbyStation>>
+
     @GET("api/stations/{id}")
     suspend fun getStation(@Path("id") id: String): Response<SolarStation>
 
