@@ -1,47 +1,29 @@
 package com.ead.solargrid
 
+import android.content.Intent
 import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.ead.solargrid.ui.theme.SolarGridTheme
+import androidx.appcompat.app.AppCompatActivity
+import com.ead.solargrid.database.SessionManager
+import com.ead.solargrid.ui.auth.LoginActivity
+import com.ead.solargrid.ui.home.ProsumerHomeActivity
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            SolarGridTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+        
+        val sessionManager = SessionManager(this)
+        val token = sessionManager.fetchAuthToken()
+
+        if (token.isNullOrEmpty()) {
+            startActivity(Intent(this, LoginActivity::class.java))
+        } else {
+            val role = sessionManager.getRole()
+            if (role == "PROSUMER") {
+                startActivity(Intent(this, ProsumerHomeActivity::class.java))
+            } else {
+                startActivity(Intent(this, LoginActivity::class.java))
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    SolarGridTheme {
-        Greeting("Android")
+        finish()
     }
 }

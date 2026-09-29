@@ -36,10 +36,23 @@ public class UserService
     }
 
     public async Task<List<User>> GetPendingUsersAsync()
-{
-    // Retrieve all pending user accounts from the repository.
-    return await _userRepository.GetPendingUsersAsync();
-}
+    {
+        var pending = await _pendingRegistrationRepository.GetEmailVerifiedAsync();
+        return pending.Select(p => new User
+        {
+            NIC = p.NIC,
+            Name = p.Name,
+            Email = p.Email,
+            Phone = p.Phone,
+            Address = p.Address,
+            Role = Role.PROSUMER,
+            AccountStatus = AccountStatus.PENDING,
+            EmailVerified = true,
+            NicDocumentId = p.NicDocumentId,
+            NicVerificationStatus = "PENDING_REVIEW",
+            CreatedDate = p.CreatedDate
+        }).ToList();
+    }
 
     public async Task<(bool Success, string Message, User? User)> CreateUserAsync(
         User user,
@@ -127,11 +140,7 @@ public class UserService
             UpdatedDate = DateTime.UtcNow
         };
 
-        var oldPending = await _pendingRegistrationRepository.GetByNicOrEmailAsync(pending.NIC, pending.Email);
-        if (oldPending != null)
-        {
-            await _pendingRegistrationRepository.DeleteAsync(oldPending.Id);
-        }
+        await _pendingRegistrationRepository.DeleteByNicOrEmailAsync(pending.NIC, pending.Email);
 
         await _pendingRegistrationRepository.CreateAsync(pending);
 
@@ -167,7 +176,11 @@ public class UserService
             return (false, "Invalid verification OTP.", null);
         }
 
-        var user = new User
+        pending.IsEmailVerified = true;
+        pending.UpdatedDate = DateTime.UtcNow;
+        await _pendingRegistrationRepository.UpdateAsync(pending);
+
+        var tempUser = new User
         {
             NIC = pending.NIC,
             Name = pending.Name,
@@ -176,20 +189,10 @@ public class UserService
             Address = pending.Address,
             Role = Role.PROSUMER,
             AccountStatus = AccountStatus.PENDING,
-            EmailVerified = true,
-            PasswordHash = pending.PasswordHash,
-            NicDocumentId = pending.NicDocumentId,
-            NicVerificationStatus = "PENDING_REVIEW",
-            CreatedDate = DateTime.UtcNow,
-            UpdatedDate = DateTime.UtcNow
+            EmailVerified = true
         };
 
-        await _userRepository.CreateAsync(user);
-        await _pendingRegistrationRepository.DeleteAsync(pending.Id);
-
-        user.PasswordHash = string.Empty;
-
-        return (true, "Email verified successfully. Registration completed. Your account is pending Backoffice activation.", user);
+        return (true, "Email verified successfully. Registration completed. Your account is pending Backoffice activation.", tempUser);
     }
 
     public async Task<(bool Success, string Message)> ResendOtpAsync(ResendOtpRequest request)
@@ -390,19 +393,30 @@ public class UserService
 
     public async Task<(bool Success, string Message, byte[]? FileBytes, string? ContentType, string? FileName)> GetNicDocumentAsync(string nic)
     {
+        string? documentId = null;
+
         var user = await _userRepository.GetByNICAsync(nic);
-        if (user == null)
+        if (user != null && !string.IsNullOrEmpty(user.NicDocumentId))
         {
-            return (false, "User not found.", null, null, null);
+            documentId = user.NicDocumentId;
         }
-        if (string.IsNullOrEmpty(user.NicDocumentId))
+        else
+        {
+            var pending = await _pendingRegistrationRepository.GetByNicOrEmailAsync(nic, nic);
+            if (pending != null && !string.IsNullOrEmpty(pending.NicDocumentId))
+            {
+                documentId = pending.NicDocumentId;
+            }
+        }
+
+        if (string.IsNullOrEmpty(documentId))
         {
             return (false, "NIC document not found for this user.", null, null, null);
         }
 
         try
         {
-            var objectId = new MongoDB.Bson.ObjectId(user.NicDocumentId);
+            var objectId = new MongoDB.Bson.ObjectId(documentId);
             
             var filter = MongoDB.Driver.Builders<MongoDB.Driver.GridFS.GridFSFileInfo>.Filter.Eq(x => x.Id, objectId);
             var cursor = await _dbContext.GridFSBucket.FindAsync(filter);
@@ -430,7 +444,31 @@ public class UserService
 
 public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
 {
-    // Find the user account using the NIC.
+    var pending = await _pendingRegistrationRepository.GetByNicOrEmailAsync(nic, nic);
+    if (pending != null && pending.IsEmailVerified)
+    {
+        var newUser = new User
+        {
+            NIC = pending.NIC,
+            Name = pending.Name,
+            Email = pending.Email,
+            Phone = pending.Phone,
+            Address = pending.Address,
+            Role = Role.PROSUMER,
+            AccountStatus = AccountStatus.ACTIVE,
+            EmailVerified = true,
+            PasswordHash = pending.PasswordHash,
+            NicDocumentId = pending.NicDocumentId,
+            NicVerificationStatus = "VERIFIED",
+            CreatedDate = pending.CreatedDate,
+            UpdatedDate = DateTime.UtcNow
+        };
+
+        await _userRepository.CreateAsync(newUser);
+        await _pendingRegistrationRepository.DeleteAsync(pending.Id);
+        return (true, "User activated successfully.");
+    }
+
     var user = await _userRepository.GetByNICAsync(nic);
 
     if (user == null)
@@ -438,7 +476,6 @@ public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
         return (false, "User not found.");
     }
 
-    // Only pending accounts can be activated.
     if (user.AccountStatus != AccountStatus.PENDING)
     {
         return (false, "Only pending accounts can be activated.");
@@ -467,12 +504,41 @@ public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
 
     if (user == null)
     {
+        var pending = await _pendingRegistrationRepository.GetByNicOrEmailAsync(identifier, identifier);
+        if (pending != null)
+        {
+            var pendingValid = BCrypt.Net.BCrypt.Verify(password, pending.PasswordHash);
+            if (pendingValid)
+            {
+                if (pending.IsEmailVerified)
+                {
+                    return (false, "Your account is pending backoffice approval.", null);
+                }
+
+                var unverifiedResponse = new LoginResponse
+                {
+                    Message = "Email verification required.",
+                    Token = "",
+                    NIC = pending.NIC,
+                    Name = pending.Name,
+                    Role = "PROSUMER",
+                    AccountStatus = "UNVERIFIED",
+                    RegistrationId = pending.RegistrationId
+                };
+                return (true, "Email verification required.", unverifiedResponse);
+            }
+        }
         return (false, "Invalid NIC, email, or password.", null);
+    }
+
+    if (user.AccountStatus == AccountStatus.PENDING)
+    {
+        return (false, "Your account is pending backoffice approval.", null);
     }
 
     if (user.AccountStatus != AccountStatus.ACTIVE)
     {
-        return (false, "Your account is not active.", null);
+        return (false, $"Your account is {user.AccountStatus}.", null);
     }
 
     if (string.IsNullOrWhiteSpace(user.PasswordHash))

@@ -36,6 +36,7 @@ public class EmailService : IEmailService
             };
 
             await client.SendMailAsync(message);
+            _logger.LogInformation($"OTP email sent successfully to {toEmail}");
         }
         catch (Exception ex)
         {
