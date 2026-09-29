@@ -14,9 +14,9 @@
 
     <!-- Plain yellow window only — do not use Theme.SplashScreen animated icon (forces monochrome icon). -->
     <style name="Theme.SolarGrid.Splash" parent="Theme.SolarGrid">
-        <item name="android:windowBackground">@color/solarix_header</item>
-        <item name="android:statusBarColor">@color/solarix_header</item>
-        <item name="android:navigationBarColor">@color/solarix_header</item>
+        <item name="android:windowBackground">@color/solarix_splash</item>
+        <item name="android:statusBarColor">@color/solarix_splash</item>
+        <item name="android:navigationBarColor">@color/solarix_splash</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
         <item name="android:forceDarkAllowed">false</item>

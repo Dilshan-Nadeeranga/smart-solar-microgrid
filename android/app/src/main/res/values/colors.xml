@@ -9,6 +9,7 @@
     <color name="white">#FFFFFFFF</color>
 
     <color name="solarix_header">#FFDD19</color>
+    <color name="solarix_splash">#FFEE08</color>
     <color name="solarix_surface">#F8F9FA</color>
     <color name="slate_900">#0F172A</color>
     <color name="slate_600">#475569</color>
