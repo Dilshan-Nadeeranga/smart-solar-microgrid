@@ -20,6 +20,10 @@
     <string name="dashboard_load_error">Could not load data. Check your connection and try again.</string>
 
     <string name="bookings_title">Bookings</string>
+    <string name="bookings_subtitle">Pending approvals and new reservations</string>
+    <string name="bookings_pending_heading">Pending bookings</string>
+    <string name="bookings_pending_empty">No pending bookings. Create one when you are ready.</string>
+    <string name="booking_create_button">+ Create booking</string>
     <string name="booking_search_stations">Search stations</string>
     <string name="booking_no_station_match">No stations match your search.</string>
     <string name="booking_eyebrow_new">New booking</string>
