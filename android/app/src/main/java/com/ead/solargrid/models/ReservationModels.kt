@@ -31,5 +31,52 @@ data class SolarStation(
     val id: String,
     val name: String,
     val address: String?,
+    val latitude: Double = 0.0,
+    val longitude: Double = 0.0,
+    val capacityKw: Double = 0.0,
+    val batteryStorageSlots: Int = 0,
     val isActive: Boolean
+)
+
+data class StationSchedule(
+    val id: String,
+    val stationId: String,
+    val day: String,
+    val openingTime: String,
+    val closingTime: String,
+    val isAvailable: Boolean
+)
+
+data class EnergyBookingSlotDto(
+    val id: String,
+    val stationId: String,
+    val startTimeUtc: String,
+    val endTimeUtc: String,
+    val maximumBookings: Int,
+    val reservedBookings: Int,
+    val isActive: Boolean = true
+) {
+    val remainingBookings: Int
+        get() = (maximumBookings - reservedBookings).coerceAtLeast(0)
+}
+
+data class CreateSlotRequest(
+    val startTimeUtc: String,
+    val endTimeUtc: String,
+    val maximumBookings: Int
+)
+
+data class CreateSlotResponse(
+    val id: String
+)
+
+data class CreateReservationRequest(
+    val slotId: String,
+    val stationId: String?
+)
+
+data class CreateReservationResponse(
+    val message: String?,
+    val reservationId: String?,
+    val reservation: ReservationItem?
 )
