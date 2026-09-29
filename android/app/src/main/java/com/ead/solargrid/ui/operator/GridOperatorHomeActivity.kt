@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.ColorRes
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
@@ -29,6 +30,7 @@ import com.ead.solargrid.databinding.ActivityGridOperatorHomeBinding
 import com.ead.solargrid.databinding.ItemOperatorActionBinding
 import com.ead.solargrid.databinding.ItemOperatorStatBinding
 import com.ead.solargrid.ui.auth.LoginActivity
+import com.ead.solargrid.ui.operator.scan.ScanQrActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
@@ -51,6 +53,11 @@ class GridOperatorHomeActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGridOperatorHomeBinding
     private lateinit var viewModel: GridOperatorHomeViewModel
     private lateinit var sessionManager: SessionManager
+
+    /** Completing transfers changes today's numbers, so refresh on the way back. */
+    private val scanQr = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        if (::viewModel.isInitialized) viewModel.refresh()
+    }
 
     private val countFormat = NumberFormat.getIntegerInstance()
     private val kwFormat = DecimalFormat("#,##0.#")
@@ -147,9 +154,11 @@ class GridOperatorHomeActivity : AppCompatActivity() {
         }
     }
 
-    // TODO: Point these at the real screens as they are built (QR scan, pending list, reservations, stations).
+    // TODO: Point the rest at the real screens as they are built (pending list, reservations, stations).
     private fun setUpActions() {
-        binding.actionScan.setUp(R.drawable.ic_op_qr, R.string.operator_action_scan, Tone.YELLOW)
+        binding.actionScan.setUp(R.drawable.ic_op_qr, R.string.operator_action_scan, Tone.YELLOW) {
+            scanQr.launch(Intent(this, ScanQrActivity::class.java))
+        }
         binding.actionPending.setUp(R.drawable.ic_op_schedule, R.string.operator_action_pending, Tone.AMBER)
         binding.actionReservations.setUp(R.drawable.ic_op_list, R.string.operator_action_reservations, Tone.BLUE)
         binding.actionStations.setUp(R.drawable.ic_op_station, R.string.operator_action_stations, Tone.NEUTRAL)
@@ -169,10 +178,15 @@ class GridOperatorHomeActivity : AppCompatActivity() {
         }
     }
 
-    private fun ItemOperatorActionBinding.setUp(@DrawableRes icon: Int, @StringRes label: Int, tone: Tone) {
+    private fun ItemOperatorActionBinding.setUp(
+        @DrawableRes icon: Int,
+        @StringRes label: Int,
+        tone: Tone,
+        onClick: (() -> Unit)? = null
+    ) {
         applyTone(iconBadge, ivIcon, icon, tone)
         tvLabel.setText(label)
-        root.setOnClickListener { showComingSoon(getString(label)) }
+        root.setOnClickListener { onClick?.invoke() ?: showComingSoon(getString(label)) }
     }
 
     private fun applyTone(badge: View, iconView: ImageView, @DrawableRes icon: Int, tone: Tone) {

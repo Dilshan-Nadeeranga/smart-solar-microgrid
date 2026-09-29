@@ -88,4 +88,19 @@ interface ApiService {
 
     @POST("api/reservations")
     suspend fun createReservation(@Body body: CreateReservationRequest): Response<CreateReservationResponse>
+
+    /** Prosumer only, for their own Approved reservation. */
+    @GET("api/reservations/{id}/qr")
+    suspend fun getReservationQr(@Path("id") id: String): Response<QrCodeResponse>
+
+    /** Grid Operator only. Read-only check of a scanned QR string. */
+    @POST("api/reservations/verify-qr")
+    suspend fun verifyQr(@Body body: VerifyQrRequest): Response<QrVerificationResponse>
+
+    /** Grid Operator only. A repeat call returns 409 "already completed". */
+    @PATCH("api/reservations/{id}/complete")
+    suspend fun completeReservation(
+        @Path("id") id: String,
+        @Body body: ReservationActionRequest
+    ): Response<ReservationActionResponse>
 }

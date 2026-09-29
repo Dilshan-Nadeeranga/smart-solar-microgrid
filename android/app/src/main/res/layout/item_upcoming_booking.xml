@@ -6,6 +6,7 @@
     android:layout_marginBottom="10dp"
     app:cardBackgroundColor="@color/dashboard_card"
     app:cardCornerRadius="16dp"
+    android:foreground="?attr/selectableItemBackground"
     app:cardElevation="1dp">
 
     <LinearLayout
@@ -41,5 +42,21 @@
             android:textColor="@color/solar_yellow_dark"
             android:textSize="12sp"
             android:textStyle="bold" />
+
+        <!-- Shown only on rows that open the QR screen (Approved bookings). -->
+        <TextView
+            android:id="@+id/tvBookingAction"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:drawablePadding="6dp"
+            android:gravity="center_vertical"
+            android:text="@string/booking_show_qr"
+            android:textColor="@color/solar_yellow_dark"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:drawableStartCompat="@drawable/ic_op_qr"
+            app:drawableTint="@color/solar_yellow_dark" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
