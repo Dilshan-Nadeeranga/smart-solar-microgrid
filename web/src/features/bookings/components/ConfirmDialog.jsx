@@ -2,6 +2,11 @@ import { useId } from 'react'
 import { useModalDialog } from './useModalDialog'
 import { Button, Icon } from './ui'
 
+const TONES = {
+  danger: 'bg-red-100 text-red-800',
+  caution: 'bg-amber-100 text-amber-900',
+}
+
 /**
  * Accessible confirm dialog (native modal <dialog>: focus trap, Esc to cancel).
  * Focus starts on Cancel so a destructive action is never one Enter away.
@@ -13,6 +18,8 @@ export default function ConfirmDialog({
   icon = 'warning',
   confirmLabel = 'Confirm',
   confirmVariant = 'danger',
+  cancelLabel = 'Cancel',
+  tone = 'danger',
   busy = false,
   busyLabel = 'Working…',
   onConfirm,
@@ -32,7 +39,7 @@ export default function ConfirmDialog({
       {open && (
         <div className="flex flex-col gap-5 p-6">
           <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-800">
+            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${TONES[tone]}`}>
               <Icon name={icon} className="text-[22px]" />
             </div>
             <div className="flex min-w-0 flex-col gap-2">
@@ -47,7 +54,7 @@ export default function ConfirmDialog({
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             {/* First focusable element: showModal() puts focus here. */}
             <Button onClick={onCancel} disabled={busy}>
-              Cancel
+              {cancelLabel}
             </Button>
             <Button variant={confirmVariant} onClick={onConfirm} loading={busy} loadingText={busyLabel}>
               {confirmLabel}

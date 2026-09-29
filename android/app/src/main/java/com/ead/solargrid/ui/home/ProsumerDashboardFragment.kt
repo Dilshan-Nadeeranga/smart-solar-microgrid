@@ -11,6 +11,8 @@ import com.ead.solargrid.R
 import com.ead.solargrid.api.ApiClient
 import com.ead.solargrid.database.SessionManager
 import com.ead.solargrid.databinding.FragmentProsumerDashboardBinding
+import com.ead.solargrid.models.ReservationItem
+import com.ead.solargrid.ui.home.qr.ReservationQrActivity
 import kotlinx.coroutines.launch
 
 class ProsumerDashboardFragment : Fragment() {
@@ -94,7 +96,13 @@ class ProsumerDashboardFragment : Fragment() {
                 } else {
                     binding.tvUpcomingEmpty.visibility = View.GONE
                     items.take(3).forEach { item ->
-                        ReservationUi.addBookingRow(binding.upcomingList, inflater, item)
+                        val showQr = item.status.equals(STATUS_APPROVED, ignoreCase = true)
+                        ReservationUi.addBookingRow(
+                            binding.upcomingList,
+                            inflater,
+                            item,
+                            onClick = if (showQr) ::openQr else null
+                        )
                     }
                 }
             } catch (_: Exception) {
@@ -105,8 +113,16 @@ class ProsumerDashboardFragment : Fragment() {
         }
     }
 
+    private fun openQr(item: ReservationItem) {
+        startActivity(ReservationQrActivity.newIntent(requireContext(), item))
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    private companion object {
+        const val STATUS_APPROVED = "Approved"
     }
 }

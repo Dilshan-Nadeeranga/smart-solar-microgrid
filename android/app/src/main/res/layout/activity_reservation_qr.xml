@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prosumer QR screen. States (loading / QR / expired / message) are switched in ReservationQrActivity. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/dashboard_bg"
+    android:orientation="vertical"
+    tools:context=".ui.home.qr.ReservationQrActivity">
+
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingStart="4dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/qr_back"
+            android:src="@drawable/ic_qr_back"
+            app:tint="@color/dashboard_text" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_weight="1"
+            android:accessibilityHeading="true"
+            android:text="@string/qr_title"
+            android:textColor="@color/dashboard_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="24dp">
+
+            <!-- Booking summary, from the list row that opened this screen. -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/dashboard_card"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:id="@+id/tvStation"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/dashboard_text"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        tools:text="Colombo Solar Hub" />
+
+                    <TextView
+                        android:id="@+id/tvSlot"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:textColor="@color/dashboard_muted"
+                        android:textSize="14sp"
+                        tools:text="Tue, Sep 29 · 10:00 AM – 11:00 AM" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- QR card: skeleton while loading, then the code with its countdown. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/qrCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/dashboard_card"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <FrameLayout
+                        android:id="@+id/qrFrame"
+                        android:layout_width="260dp"
+                        android:layout_height="260dp">
+
+                        <View
+                            android:id="@+id/qrSkeleton"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_qr_skeleton" />
+
+                        <ImageView
+                            android:id="@+id/ivQr"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:contentDescription="@string/qr_image_description"
+                            android:scaleType="fitCenter"
+                            android:visibility="gone" />
+
+                        <!-- Shown over the dimmed QR once it expires. -->
+                        <LinearLayout
+                            android:id="@+id/expiredOverlay"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:background="@drawable/bg_qr_expired_overlay"
+                            android:gravity="center"
+                            android:orientation="vertical"
+                            android:visibility="gone"
+                            tools:visibility="visible">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:accessibilityLiveRegion="polite"
+                                android:text="@string/qr_expired_label"
+                                android:textColor="@color/dashboard_text"
+                                android:textSize="16sp"
+                                android:textStyle="bold" />
+
+                            <com.google.android.material.button.MaterialButton
+                                android:id="@+id/btnRefresh"
+                                android:layout_width="wrap_content"
+                                android:layout_height="48dp"
+                                android:layout_marginTop="12dp"
+                                android:text="@string/qr_refresh"
+                                android:textAllCaps="false"
+                                android:textColor="@color/dashboard_text"
+                                android:textStyle="bold"
+                                app:backgroundTint="@color/solar_yellow"
+                                app:cornerRadius="14dp" />
+                        </LinearLayout>
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/tvCountdown"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="@drawable/bg_solar_icon_circle"
+                        android:fontFeatureSettings="tnum"
+                        android:paddingHorizontal="14dp"
+                        android:paddingVertical="6dp"
+                        android:textColor="@color/solar_yellow_dark"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        tools:text="Valid for 18:42" />
+
+                    <TextView
+                        android:id="@+id/tvStatusLine"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="@string/qr_instructions"
+                        android:textColor="@color/dashboard_muted"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/tvValidFrom"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:gravity="center"
+                        android:textColor="@color/dashboard_muted"
+                        android:textSize="13sp"
+                        android:visibility="gone"
+                        tools:text="Operators can scan it from Tue, Sep 29 · 09:30 AM"
+                        tools:visibility="visible" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Replaces the QR card for not-active, not-owner and error states. -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/messageCard"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:visibility="gone"
+                app:cardBackgroundColor="@color/dashboard_card"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="1dp"
+                tools:visibility="visible">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:padding="24dp">
+
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_op_error"
+                        app:tint="@color/solar_yellow_dark" />
+
+                    <TextView
+                        android:id="@+id/tvMessageTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:textColor="@color/dashboard_text"
+                        android:textSize="17sp"
+                        android:textStyle="bold"
+                        tools:text="Reservation not active" />
+
+                    <TextView
+                        android:id="@+id/tvMessageBody"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:accessibilityLiveRegion="polite"
+                        android:gravity="center"
+                        android:textColor="@color/dashboard_muted"
+                        android:textSize="14sp"
+                        tools:text="This reservation is no longer active." />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnRetry"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:minWidth="140dp"
+                        android:text="@string/qr_retry"
+                        android:textAllCaps="false"
+                        android:textColor="@color/solar_yellow_dark"
+                        app:cornerRadius="14dp"
+                        app:strokeColor="@color/solar_yellow"
+                        app:strokeWidth="1dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

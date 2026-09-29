@@ -139,4 +139,65 @@
     <string name="operator_action_pending">Pending approvals</string>
     <string name="operator_action_reservations">All reservations</string>
     <string name="operator_action_stations">Stations</string>
+
+    <!-- Prosumer: reservation QR code -->
+    <string name="booking_show_qr">Show QR</string>
+    <string name="qr_title">Your QR code</string>
+    <string name="qr_back">Back</string>
+    <string name="qr_instructions">Show this code to the grid operator at the station to start your energy transfer.</string>
+    <string name="qr_valid_for">Valid for %1$s</string>
+    <string name="qr_expired_label">QR code expired</string>
+    <string name="qr_refresh">Refresh QR</string>
+    <string name="qr_scannable_from">Operators can scan it from %1$s</string>
+    <string name="qr_loading">Loading your QR code…</string>
+    <string name="qr_image_description">QR code for your reservation</string>
+    <string name="qr_inactive_title">Reservation not active</string>
+    <string name="qr_inactive_message">This reservation is no longer active.</string>
+    <string name="qr_forbidden_title">Not your reservation</string>
+    <string name="qr_forbidden_message">You can only show the QR code for your own reservations.</string>
+    <string name="qr_network_title">Couldn\'t load QR code</string>
+    <string name="qr_network_message">Check your connection and try again.</string>
+    <string name="qr_error_title">Something went wrong</string>
+    <string name="qr_session_expired">Your session has expired. Please log in again.</string>
+    <string name="qr_retry">Retry</string>
+
+    <!-- Grid Operator: scan, verify, complete -->
+    <string name="scan_title">Scan QR</string>
+    <string name="scan_hint">Point the camera at the prosumer\'s QR code</string>
+    <string name="scan_verifying">Verifying QR code…</string>
+    <string name="scan_again">Scan again</string>
+    <string name="scan_failed_title">QR not accepted</string>
+    <string name="scan_camera_title">Camera access needed</string>
+    <string name="scan_camera_rationale">Solar Grid uses the camera only to read reservation QR codes. Nothing is recorded or saved.</string>
+    <string name="scan_camera_denied_permanently">Camera access is turned off for Solar Grid. Turn it on in Settings to scan QR codes.</string>
+    <string name="scan_camera_allow">Allow camera</string>
+    <string name="scan_camera_settings">Open settings</string>
+    <string name="scan_camera_unavailable">The camera couldn\'t be started. Close other apps using it and try again.</string>
+
+    <string name="qr_error_invalid">Invalid QR code. Ask the prosumer to refresh their QR.</string>
+    <string name="qr_error_expired">This QR code has expired.</string>
+    <string name="qr_error_already_completed">This booking was already completed.</string>
+    <string name="qr_error_no_longer_valid">This reservation is no longer valid.</string>
+    <string name="qr_error_verify_network">Couldn\'t verify. Check your connection and retry.</string>
+    <string name="qr_error_complete_network">Couldn\'t reach the server, so the transfer was not confirmed. Check your connection and retry.</string>
+    <string name="qr_error_forbidden">Only Grid Operators can verify and complete transfers.</string>
+    <string name="qr_error_other">Something went wrong. Please try again.</string>
+
+    <string name="confirm_title">Confirm transaction</string>
+    <string name="confirm_verified_chip">QR verified</string>
+    <string name="confirm_subtitle">Check the details with the prosumer before completing the energy transfer.</string>
+    <string name="confirm_label_station">Station</string>
+    <string name="confirm_label_prosumer">Prosumer</string>
+    <string name="confirm_label_slot">Slot</string>
+    <string name="confirm_label_reservation">Reservation</string>
+    <string name="confirm_prosumer_value">%1$s\nNIC %2$s</string>
+    <string name="confirm_prosumer_nic_only">NIC %1$s</string>
+    <string name="confirm_complete">Complete transaction</string>
+    <string name="confirm_completing">Completing…</string>
+    <string name="confirm_cancel">Cancel and scan again</string>
+    <string name="confirm_done_title">Transfer completed</string>
+    <string name="confirm_done_message">The energy transfer for this reservation has been recorded.</string>
+    <string name="confirm_done_detail">%1$s\n%2$s</string>
+    <string name="confirm_scan_next">Scan next</string>
+    <string name="confirm_back_home">Back to dashboard</string>
 </resources>

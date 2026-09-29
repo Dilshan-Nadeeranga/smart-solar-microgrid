@@ -8,6 +8,9 @@
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    <!-- Grid Operator QR scanning. Not required, so camera-less devices can still install. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
 
     <application
         android:usesCleartextTraffic="true"
@@ -41,6 +44,9 @@
         <activity android:name=".ui.auth.OtpVerificationActivity" android:theme="@style/Theme.SolarGrid" />
         <activity android:name=".ui.home.ProsumerHomeActivity" android:theme="@style/Theme.SolarGrid" />
         <activity android:name=".ui.operator.GridOperatorHomeActivity" android:exported="false" android:theme="@style/Theme.SolarGrid.Operator" />
+        <activity android:name=".ui.home.qr.ReservationQrActivity" android:exported="false" android:theme="@style/Theme.SolarGrid" />
+        <activity android:name=".ui.operator.scan.ScanQrActivity" android:exported="false" android:theme="@style/Theme.SolarGrid.Operator" />
+        <activity android:name=".ui.operator.scan.ConfirmTransactionActivity" android:exported="false" android:theme="@style/Theme.SolarGrid.Operator" />
     </application>
 
 </manifest>

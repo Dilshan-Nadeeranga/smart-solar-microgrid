@@ -26,6 +26,7 @@ function buildSteps(reservation) {
     steps.push({ key: 'review', icon: 'schedule', title: 'Awaiting approval', state: 'current' })
   }
 
+  // TODO: show "Updated/Cancelled by staff (...)" once the reservation model and GET /api/reservations/{id} return staff-attribution fields.
   if (reservation.cancelledAtUtc || status === STATUS.Cancelled) {
     steps.push({ key: 'cancelled', icon: 'block', title: 'Cancelled', at: reservation.cancelledAtUtc, state: 'stopped' })
   } else if (reservation.completedAtUtc || status === STATUS.Completed) {
