@@ -39,19 +39,23 @@ object ReservationUi {
         instant.atZone(ZoneId.of("Asia/Colombo"))
             .format(DateTimeFormatter.ofPattern("EEE, MMM d · hh:mm a", Locale.getDefault()))
 
-    /** @param onClick when set, the row is tappable and shows a "Show QR" hint. */
+    /**
+     * @param onClick when set, the row is tappable and shows a "Show QR" hint.
+     * @param statusLabel replaces the raw status on the chip, e.g. "In progress".
+     */
     fun addBookingRow(
         parent: LinearLayout,
         inflater: LayoutInflater,
         item: ReservationItem,
-        onClick: ((ReservationItem) -> Unit)? = null
+        onClick: ((ReservationItem) -> Unit)? = null,
+        statusLabel: String? = null
     ) {
         val row = inflater.inflate(R.layout.item_upcoming_booking, parent, false)
         row.findViewById<TextView>(R.id.tvBookingStation).text =
             item.stationName ?: item.stationId
         row.findViewById<TextView>(R.id.tvBookingWhen).text =
             formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc)
-        row.findViewById<TextView>(R.id.tvBookingStatus).text = item.status
+        row.findViewById<TextView>(R.id.tvBookingStatus).text = statusLabel ?: item.status
         if (onClick != null) {
             row.findViewById<TextView>(R.id.tvBookingAction).visibility = View.VISIBLE
             row.isClickable = true

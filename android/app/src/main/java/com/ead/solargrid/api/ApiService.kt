@@ -55,7 +55,8 @@ interface ApiService {
     @GET("api/reservations/mine")
     suspend fun getMyReservations(
         @Query("status") status: String? = null,
-        @Query("pageSize") pageSize: Int = 20
+        @Query("pageSize") pageSize: Int = 20,
+        @Query("page") page: Int? = null
     ): Response<ReservationPageResponse>
 
     @GET("api/stations")

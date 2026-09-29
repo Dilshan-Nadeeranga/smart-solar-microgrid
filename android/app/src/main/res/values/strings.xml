@@ -202,4 +202,13 @@
     <string name="confirm_done_detail">%1$s\n%2$s</string>
     <string name="confirm_scan_next">Scan next</string>
     <string name="confirm_back_home">Back to dashboard</string>
+
+    <!-- Prosumer: Upcoming bookings page (Approved, slot not ended) -->
+    <string name="upcoming_subtitle">Approved bookings. Tap one to show its QR code.</string>
+    <string name="upcoming_in_progress">In progress</string>
+    <string name="upcoming_card_description">%1$s: %2$s. Opens your upcoming bookings.</string>
+    <plurals name="upcoming_count">
+        <item quantity="one">%d booking</item>
+        <item quantity="other">%d bookings</item>
+    </plurals>
 </resources>
