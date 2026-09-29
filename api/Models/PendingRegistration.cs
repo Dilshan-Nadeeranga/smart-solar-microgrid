@@ -24,6 +24,8 @@ public class PendingRegistration
 
     public string NicDocumentId { get; set; } = string.Empty;
 
+    public bool IsEmailVerified { get; set; } = false;
+
     public DateTime CreatedDate { get; set; }
     public DateTime UpdatedDate { get; set; }
 }

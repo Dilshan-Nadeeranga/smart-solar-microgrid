@@ -85,18 +85,7 @@ public async Task<IActionResult> VerifyOtp([FromBody] VerifyOtpRequest request)
         return BadRequest(new { message = result.Message });
     }
 
-    return CreatedAtAction(
-        nameof(Login),
-        null,
-        new
-        {
-            message = result.Message,
-            NIC = result.User?.NIC,
-            role = result.User?.Role.ToString(),
-            accountStatus = result.User?.AccountStatus.ToString(),
-            emailVerified = result.User?.EmailVerified
-        }
-    );
+    return Ok(result.User);
 }
 
 [HttpPost("register/resend-otp")]

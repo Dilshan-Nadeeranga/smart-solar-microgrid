@@ -25,6 +25,21 @@ export default function PendingUsersPage() {
     fetchPending();
   }, []);
 
+  const handleViewNIC = async (nic) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/users/${encodeURIComponent(nic)}/nic-document`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to load NIC document. It may not exist.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      alert(err.message);
+    }
+  };
+
   const handleActivate = async (nic) => {
     if (!window.confirm(`Are you sure you want to activate user ${nic}?`)) {
       return;
@@ -83,12 +98,20 @@ export default function PendingUsersPage() {
                       {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : '-'}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleActivate(user.nic)}
-                        className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary/90"
-                      >
-                        Activate
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleViewNIC(user.nic)}
+                          className="rounded-lg bg-secondary px-4 py-2 text-xs font-semibold text-on-secondary hover:bg-secondary/90"
+                        >
+                          View NIC
+                        </button>
+                        <button
+                          onClick={() => handleActivate(user.nic)}
+                          className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-on-primary hover:bg-primary/90"
+                        >
+                          Activate
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

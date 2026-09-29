@@ -1,3 +1,32 @@
 <resources>
     <string name="app_name">SolarGrid</string>
+
+    <string name="nav_home">Home</string>
+    <string name="nav_bookings">Bookings</string>
+    <string name="nav_history">History</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_notifications">Notification</string>
+
+    <string name="dashboard_greeting">Hi %1$s</string>
+    <string name="dashboard_greeting_wave">Hi, %1$s 👋</string>
+    <string name="dashboard_pending_reservations">Pending reservations</string>
+    <string name="dashboard_approved_upcoming">Approved (upcoming)</string>
+    <string name="dashboard_nearby_slots">Active station slots nearby</string>
+    <string name="dashboard_reserve_slot">+ Reserve a slot</string>
+    <string name="dashboard_upcoming_title">Upcoming bookings</string>
+    <string name="dashboard_upcoming_empty">No upcoming approved bookings yet.</string>
+    <string name="dashboard_view_nearby">View nearby stations →</string>
+    <string name="dashboard_nearby_coming">Nearby stations map is coming soon.</string>
+    <string name="dashboard_load_error">Could not load data. Check your connection and try again.</string>
+
+    <string name="bookings_title">My reservations</string>
+    <string name="bookings_subtitle">Pending and approved energy-slot bookings</string>
+    <string name="bookings_empty">You have no active reservations.</string>
+
+    <string name="history_title">Booking history</string>
+    <string name="history_subtitle">Completed, cancelled, and rejected bookings</string>
+    <string name="history_empty">No past bookings yet.</string>
+
+    <string name="coming_soon">Coming soon</string>
+    <string name="logout">Logout</string>
 </resources>
