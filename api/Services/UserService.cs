@@ -7,11 +7,22 @@ public class UserService
 {
     private readonly UserRepository _userRepository;
     private readonly JwtService _jwtService;
+    private readonly PendingRegistrationRepository _pendingRegistrationRepository;
+    private readonly IEmailService _emailService;
+    private readonly Data.MongoDbContext _dbContext;
 
-    public UserService(UserRepository userRepository, JwtService jwtService)
+    public UserService(
+        UserRepository userRepository,
+        JwtService jwtService,
+        PendingRegistrationRepository pendingRegistrationRepository,
+        IEmailService emailService,
+        Data.MongoDbContext dbContext)
     {
         _userRepository = userRepository;
         _jwtService = jwtService;
+        _pendingRegistrationRepository = pendingRegistrationRepository;
+        _emailService = emailService;
+        _dbContext = dbContext;
     }
 
     public async Task<User?> GetByNICAsync(string nic)
@@ -59,43 +70,154 @@ public class UserService
     }
 
     
-    public async Task<(bool Success, string Message, User? User)> RegisterProsumerAsync(
-    User user,
-    string password)
-{
-    // Check whether the NIC is already registered.
-    var existingUser = await _userRepository.GetByNICAsync(user.NIC);
-
-    if (existingUser != null)
+    public async Task<(bool Success, string Message, string? RegistrationId)> StartRegistrationAsync(RegisterStartRequest request)
     {
-        return (false, "A user with this NIC already exists.", null);
+        var normalizedNic = NicValidationHelper.Normalize(request.NIC);
+        
+        if (!NicValidationHelper.IsValid(normalizedNic))
+        {
+            return (false, "Invalid Sri Lankan NIC format.", null);
+        }
+
+        var existingUser = await _userRepository.GetByNICAsync(normalizedNic);
+        if (existingUser != null)
+        {
+            return (false, "This NIC is already registered.", null);
+        }
+
+        if (request.NicDocument == null || request.NicDocument.Length == 0)
+        {
+            return (false, "NIC document is required.", null);
+        }
+
+        if (request.NicDocument.Length > 5 * 1024 * 1024)
+        {
+            return (false, "NIC document must not exceed 5 MB.", null);
+        }
+
+        var ext = System.IO.Path.GetExtension(request.NicDocument.FileName).ToLowerInvariant();
+        if (ext != ".jpg" && ext != ".jpeg" && ext != ".png" && ext != ".pdf")
+        {
+            return (false, "Only JPG, JPEG, PNG, and PDF files are allowed.", null);
+        }
+
+        var otp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        var otpHash = BCrypt.Net.BCrypt.HashPassword(otp);
+
+        string nicDocumentId = string.Empty;
+        using (var stream = request.NicDocument.OpenReadStream())
+        {
+            var objectId = await _dbContext.GridFSBucket.UploadFromStreamAsync(request.NicDocument.FileName, stream);
+            nicDocumentId = objectId.ToString();
+        }
+
+        var pending = new PendingRegistration
+        {
+            RegistrationId = Guid.NewGuid().ToString("N"),
+            NIC = normalizedNic,
+            Name = request.Name.Trim(),
+            Email = request.Email.Trim().ToLowerInvariant(),
+            Phone = request.Phone?.Trim() ?? string.Empty,
+            Address = request.Address?.Trim() ?? string.Empty,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            NicDocumentId = nicDocumentId,
+            OtpHash = otpHash,
+            OtpExpiry = DateTime.UtcNow.AddMinutes(10),
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = DateTime.UtcNow
+        };
+
+        var oldPending = await _pendingRegistrationRepository.GetByNicOrEmailAsync(pending.NIC, pending.Email);
+        if (oldPending != null)
+        {
+            await _pendingRegistrationRepository.DeleteAsync(oldPending.Id);
+        }
+
+        await _pendingRegistrationRepository.CreateAsync(pending);
+
+        await _emailService.SendOtpEmailAsync(pending.Email, otp);
+
+        return (true, "A verification OTP has been sent to your email.", pending.RegistrationId);
     }
 
-    // Check that a password was provided.
-    if (string.IsNullOrWhiteSpace(password))
+    public async Task<(bool Success, string Message, User? User)> VerifyOtpAsync(VerifyOtpRequest request)
     {
-        return (false, "Password is required.", null);
+        var pending = await _pendingRegistrationRepository.GetByRegistrationIdAsync(request.RegistrationId);
+
+        if (pending == null)
+        {
+            return (false, "Invalid registration session.", null);
+        }
+
+        if (pending.OtpAttempts >= 5)
+        {
+            return (false, "Too many verification attempts. Please request a new OTP.", null);
+        }
+
+        if (DateTime.UtcNow > pending.OtpExpiry)
+        {
+            return (false, "Verification OTP has expired. Please request a new OTP.", null);
+        }
+
+        bool isValid = BCrypt.Net.BCrypt.Verify(request.Otp, pending.OtpHash);
+        if (!isValid)
+        {
+            pending.OtpAttempts++;
+            await _pendingRegistrationRepository.UpdateAsync(pending);
+            return (false, "Invalid verification OTP.", null);
+        }
+
+        var user = new User
+        {
+            NIC = pending.NIC,
+            Name = pending.Name,
+            Email = pending.Email,
+            Phone = pending.Phone,
+            Address = pending.Address,
+            Role = Role.PROSUMER,
+            AccountStatus = AccountStatus.PENDING,
+            EmailVerified = true,
+            PasswordHash = pending.PasswordHash,
+            NicDocumentId = pending.NicDocumentId,
+            NicVerificationStatus = "PENDING_REVIEW",
+            CreatedDate = DateTime.UtcNow,
+            UpdatedDate = DateTime.UtcNow
+        };
+
+        await _userRepository.CreateAsync(user);
+        await _pendingRegistrationRepository.DeleteAsync(pending.Id);
+
+        user.PasswordHash = string.Empty;
+
+        return (true, "Email verified successfully. Registration completed. Your account is pending Backoffice activation.", user);
     }
 
-    // Set the account as a Prosumer waiting for Backoffice activation.
-    user.Role = Role.PROSUMER;
-    user.AccountStatus = AccountStatus.PENDING;
+    public async Task<(bool Success, string Message)> ResendOtpAsync(ResendOtpRequest request)
+    {
+        var pending = await _pendingRegistrationRepository.GetByRegistrationIdAsync(request.RegistrationId);
 
-    // Hash the password before saving it.
-    user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+        if (pending == null)
+        {
+            return (false, "Invalid registration session.");
+        }
 
-    // Set account timestamps.
-    user.CreatedDate = DateTime.UtcNow;
-    user.UpdatedDate = DateTime.UtcNow;
+        if (DateTime.UtcNow < pending.UpdatedDate.AddMinutes(1))
+        {
+            return (false, "Please wait before requesting a new OTP.");
+        }
 
-    // Save the Prosumer account to MongoDB.
-    await _userRepository.CreateAsync(user);
+        var otp = System.Security.Cryptography.RandomNumberGenerator.GetInt32(100000, 1000000).ToString();
+        pending.OtpHash = BCrypt.Net.BCrypt.HashPassword(otp);
+        pending.OtpExpiry = DateTime.UtcNow.AddMinutes(10);
+        pending.OtpAttempts = 0;
+        pending.UpdatedDate = DateTime.UtcNow;
 
-    // Do not expose the password hash in the response.
-    user.PasswordHash = string.Empty;
+        await _pendingRegistrationRepository.UpdateAsync(pending);
 
-    return (true, "Prosumer registration submitted successfully. Your account is waiting for activation.", user);
-}
+        await _emailService.SendOtpEmailAsync(pending.Email, otp);
+
+        return (true, "A new verification OTP has been sent.");
+    }
 
     public async Task<(bool Success, string Message, User? User)> CreateStaffAsync(
     User user,
@@ -265,6 +387,45 @@ public class UserService
 
     return (true, "User reactivated successfully.");
 }
+
+    public async Task<(bool Success, string Message, byte[]? FileBytes, string? ContentType, string? FileName)> GetNicDocumentAsync(string nic)
+    {
+        var user = await _userRepository.GetByNICAsync(nic);
+        if (user == null)
+        {
+            return (false, "User not found.", null, null, null);
+        }
+        if (string.IsNullOrEmpty(user.NicDocumentId))
+        {
+            return (false, "NIC document not found for this user.", null, null, null);
+        }
+
+        try
+        {
+            var objectId = new MongoDB.Bson.ObjectId(user.NicDocumentId);
+            
+            var filter = MongoDB.Driver.Builders<MongoDB.Driver.GridFS.GridFSFileInfo>.Filter.Eq(x => x.Id, objectId);
+            var cursor = await _dbContext.GridFSBucket.FindAsync(filter);
+            var list = await MongoDB.Driver.IAsyncCursorExtensions.ToListAsync(cursor);
+            var fileInfo = list.FirstOrDefault();
+            
+            var fileBytes = await _dbContext.GridFSBucket.DownloadAsBytesAsync(objectId);
+            
+            string contentType = "application/octet-stream";
+            string fileName = fileInfo?.Filename ?? "nic_document";
+            
+            var ext = System.IO.Path.GetExtension(fileName).ToLowerInvariant();
+            if (ext == ".jpg" || ext == ".jpeg") contentType = "image/jpeg";
+            else if (ext == ".png") contentType = "image/png";
+            else if (ext == ".pdf") contentType = "application/pdf";
+
+            return (true, "Success", fileBytes, contentType, fileName);
+        }
+        catch
+        {
+            return (false, "Failed to retrieve NIC document.", null, null, null);
+        }
+    }
 
 
 public async Task<(bool Success, string Message)> ActivateUserAsync(string nic)
