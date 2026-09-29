@@ -13,24 +13,26 @@
         android:gravity="center_vertical"
         android:orientation="horizontal"
         android:paddingHorizontal="16dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="8dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="4dp"
         android:visibility="gone">
 
         <ImageButton
             android:id="@+id/btnBookingBack"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:background="@drawable/bg_booking_back_circle"
             android:contentDescription="@string/back"
-            android:src="@android:drawable/ic_menu_revert"
-            app:tint="@color/dashboard_text"
+            android:padding="8dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/back_button"
+            app:tint="@null"
             android:visibility="gone" />
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -38,10 +40,11 @@
                 android:id="@+id/tvBookingEyebrow"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:letterSpacing="0.12"
                 android:text="@string/booking_eyebrow_new"
                 android:textAllCaps="true"
-                android:textColor="@color/solar_yellow_dark"
-                android:textSize="11sp"
+                android:textColor="@color/booking_eyebrow_amber"
+                android:textSize="10sp"
                 android:textStyle="bold"
                 android:visibility="gone" />
 
@@ -49,9 +52,10 @@
                 android:id="@+id/tvBookingTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="@string/booking_step_station"
-                android:textColor="@color/dashboard_text"
-                android:textSize="22sp"
+                android:textColor="@color/slate_900"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
@@ -61,33 +65,10 @@
                 android:layout_marginTop="4dp"
                 android:text="@string/booking_create_subtitle_app"
                 android:textColor="@color/dashboard_muted"
-                android:textSize="13sp" />
+                android:textSize="13sp"
+                android:visibility="gone" />
         </LinearLayout>
     </LinearLayout>
-
-    <com.google.android.material.textfield.TextInputLayout
-        android:id="@+id/stationSearchLayout"
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="8dp"
-        android:visibility="gone"
-        android:hint="@string/booking_search_stations"
-        app:boxCornerRadiusBottomEnd="14dp"
-        app:boxCornerRadiusBottomStart="14dp"
-        app:boxCornerRadiusTopEnd="14dp"
-        app:boxCornerRadiusTopStart="14dp"
-        app:startIconDrawable="@android:drawable/ic_menu_search">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etStationSearch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:imeOptions="actionSearch"
-            android:inputType="text"
-            android:maxLines="1" />
-    </com.google.android.material.textfield.TextInputLayout>
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -210,7 +191,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingHorizontal="20dp"
+            android:paddingHorizontal="16dp"
             android:paddingBottom="16dp"
             android:visibility="gone">
 
@@ -218,6 +199,60 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tvStationStepDescription"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/booking_create_subtitle_app"
+                    android:textColor="@color/slate_500"
+                    android:textSize="12sp" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/stationSearchLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="20dp"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="999dp"
+                    app:cardElevation="1dp"
+                    app:strokeColor="@color/booking_search_stroke"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="14dp">
+
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:contentDescription="@null"
+                            android:src="@drawable/ic_map_search"
+                            app:tint="@color/slate_500" />
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etStationSearch"
+                            android:layout_width="0dp"
+                            android:layout_height="match_parent"
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            android:background="@null"
+                            android:gravity="center_vertical"
+                            android:hint="@string/booking_search_stations"
+                            android:imeOptions="actionSearch"
+                            android:importantForAutofill="no"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:textColor="@color/dashboard_text"
+                            android:textColorHint="@color/slate_500"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <include layout="@layout/partial_booking_step_header"
                     android:id="@+id/headerStation" />
@@ -241,7 +276,7 @@
                     android:id="@+id/stationList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
                     android:orientation="vertical"
                     android:visibility="gone" />
             </LinearLayout>
@@ -462,11 +497,18 @@
         style="@style/Widget.MaterialComponents.Button"
         android:layout_width="match_parent"
         android:layout_height="52dp"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="16dp"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginBottom="12dp"
+        android:elevation="4dp"
         android:text="@string/continue_label"
         android:textAllCaps="false"
+        android:textColor="@color/slate_900"
+        android:textStyle="bold"
         android:visibility="gone"
-        app:backgroundTint="@color/solar_yellow"
-        app:cornerRadius="14dp" />
+        app:backgroundTint="@color/solarix_header"
+        app:cornerRadius="12dp"
+        app:icon="@drawable/ic_chevron_right"
+        app:iconGravity="textEnd"
+        app:iconPadding="6dp"
+        app:iconTint="@color/slate_900" />
 </LinearLayout>
