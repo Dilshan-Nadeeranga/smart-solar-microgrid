@@ -1,5 +1,5 @@
 import { useId, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../../auth/AuthContext'
 import { bookingsApi } from '../bookingsApi'
 import { queryKeys, useBookings, useNow, useProsumer, useSlot, useStation, useStations } from '../context'
@@ -7,6 +7,7 @@ import { useQuery } from '../query'
 import { buildChecks } from '../review'
 import { STATUS } from '../status'
 import { formatColomboRange, formatUtc } from '../time'
+import ConfirmDialog from './ConfirmDialog'
 import ErrorState from './ErrorState'
 import StatusBadge from './StatusBadge'
 import StatusTimeline from './StatusTimeline'
@@ -22,6 +23,28 @@ const member3Paths = {
 
 // GET /users/{nic} is Backoffice-only in the API.
 const PROSUMER_READER_ROLES = ['BACKOFFICE']
+
+// Staff acting on a prosumer's booking confirm first; the owner goes straight through.
+const STAFF_ROLES = ['BACKOFFICE', 'GRID_OPERATOR']
+
+const shortRef = (id) => `…${id.slice(-8).toUpperCase()}`
+
+const STAFF_ACTIONS = {
+  edit: {
+    title: 'Edit on behalf of prosumer',
+    icon: 'edit',
+    confirmLabel: 'Continue to edit',
+    confirmVariant: 'primary',
+    path: member3Paths.edit,
+  },
+  cancel: {
+    title: 'Cancel on behalf of prosumer',
+    icon: 'event_busy',
+    confirmLabel: 'Confirm cancellation',
+    confirmVariant: 'danger',
+    path: member3Paths.details,
+  },
+}
 
 function Field({ label, children, wide = false }) {
   return (
@@ -214,6 +237,7 @@ function ApprovalFooter({ reservation, review }) {
 
 function DrawerBody({ reservationId }) {
   const { user } = useAuth()
+  const navigate = useNavigate()
   const { canApprove } = useBookings()
   const { nameById } = useStations()
   const now = useNow()
@@ -224,6 +248,8 @@ function DrawerBody({ reservationId }) {
   const slotQuery = useSlot(reservation?.slotId)
   const stationQuery = useStation(reservation?.stationId)
   const prosumerQuery = useProsumer(reservation?.prosumerId, canReadProsumer)
+  // 'edit' | 'cancel' while the staff confirmation is open.
+  const [staffAction, setStaffAction] = useState(null)
 
   if (query.isLoading) return <DrawerSkeleton />
   if (query.isError) {
@@ -241,6 +267,9 @@ function DrawerBody({ reservationId }) {
     now,
   })
 
+  const staffAssist = STAFF_ROLES.includes(user?.role) && user?.nic !== reservation.prosumerId
+  const pendingStaffAction = staffAction && STAFF_ACTIONS[staffAction]
+
   const slot = slotQuery.data
   const station = stationQuery.data
   const prosumer = prosumerQuery.data
@@ -250,6 +279,15 @@ function DrawerBody({ reservationId }) {
   return (
     <>
       <div className="flex flex-col gap-6 p-6">
+        {staffAssist && (
+          <p className="-mt-2 flex items-center gap-1.5 text-xs text-secondary">
+            <Icon name="support_agent" className="text-[16px]" />
+            <span>
+              You are viewing this on behalf of Prosumer <span className="font-semibold text-on-surface">{reservation.prosumerId}</span>.
+            </span>
+          </p>
+        )}
+
         {query.error && (
           <ErrorState variant="banner" error={query.error} onRetry={query.refetch} retrying={query.isFetching} />
         )}
@@ -380,23 +418,64 @@ function DrawerBody({ reservationId }) {
               <Icon name="open_in_new" className="text-[16px]" />
               Open details
             </Link>
-            {isActive && (
-              <>
-                <Link to={member3Paths.edit(reservation.id)} className={`${buttonVariants.secondary} ${buttonSizes.sm}`}>
-                  <Icon name="edit" className="text-[16px]" />
-                  Edit booking
-                </Link>
-                <Link to={member3Paths.details(reservation.id)} className={`${buttonVariants.secondary} ${buttonSizes.sm}`}>
-                  <Icon name="event_busy" className="text-[16px]" />
-                  Cancel booking
-                </Link>
-              </>
-            )}
+            {isActive &&
+              (staffAssist ? (
+                <>
+                  <button type="button" onClick={() => setStaffAction('edit')} className={`${buttonVariants.secondary} ${buttonSizes.sm}`}>
+                    <Icon name="edit" className="text-[16px]" />
+                    Edit booking
+                  </button>
+                  <button type="button" onClick={() => setStaffAction('cancel')} className={`${buttonVariants.secondary} ${buttonSizes.sm}`}>
+                    <Icon name="event_busy" className="text-[16px]" />
+                    Cancel booking
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link to={member3Paths.edit(reservation.id)} className={`${buttonVariants.secondary} ${buttonSizes.sm}`}>
+                    <Icon name="edit" className="text-[16px]" />
+                    Edit booking
+                  </Link>
+                  <Link to={member3Paths.details(reservation.id)} className={`${buttonVariants.secondary} ${buttonSizes.sm}`}>
+                    <Icon name="event_busy" className="text-[16px]" />
+                    Cancel booking
+                  </Link>
+                </>
+              ))}
           </div>
         </section>
       </div>
 
       {reviewing && <ApprovalFooter reservation={reservation} review={review} />}
+
+      {staffAssist && (
+        <ConfirmDialog
+          open={Boolean(pendingStaffAction)}
+          title={pendingStaffAction?.title}
+          icon={pendingStaffAction?.icon}
+          tone="caution"
+          cancelLabel="Go back"
+          confirmLabel={pendingStaffAction?.confirmLabel}
+          confirmVariant={pendingStaffAction?.confirmVariant}
+          onCancel={() => setStaffAction(null)}
+          onConfirm={() => navigate(pendingStaffAction.path(reservation.id))}
+        >
+          {staffAction === 'cancel' ? (
+            <>
+              <p>
+                You're about to cancel reservation <span className="font-mono">{shortRef(reservation.id)}</span> for
+                Prosumer {reservation.prosumerId}. This action will be recorded against your staff account.
+              </p>
+              <p>The slot capacity will be released and this cannot be undone.</p>
+            </>
+          ) : (
+            <p>
+              You're about to edit reservation <span className="font-mono">{shortRef(reservation.id)}</span> for Prosumer{' '}
+              {reservation.prosumerId}. This action will be recorded against your staff account.
+            </p>
+          )}
+        </ConfirmDialog>
+      )}
     </>
   )
 }
@@ -421,7 +500,7 @@ export default function ReservationDrawer({ reservationId, onClose }) {
                 Reservation
               </h2>
               <p className="truncate font-mono text-xs text-secondary" title={reservationId}>
-                …{reservationId.slice(-8).toUpperCase()}
+                {shortRef(reservationId)}
               </p>
             </div>
             <button
