@@ -47,7 +47,7 @@
                 android:id="@+id/tvBookingTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/bookings_title"
+                android:text="@string/booking_step_station"
                 android:textColor="@color/dashboard_text"
                 android:textSize="22sp"
                 android:textStyle="bold" />
@@ -57,7 +57,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
-                android:text="@string/bookings_subtitle"
+                android:text="@string/booking_create_subtitle_app"
                 android:textColor="@color/dashboard_muted"
                 android:textSize="13sp" />
         </LinearLayout>
@@ -70,7 +70,6 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp"
         android:layout_marginBottom="8dp"
-        android:visibility="gone"
         android:hint="@string/booking_search_stations"
         app:boxCornerRadiusBottomEnd="14dp"
         app:boxCornerRadiusBottomStart="14dp"
@@ -93,67 +92,12 @@
         android:layout_weight="1">
 
         <androidx.core.widget.NestedScrollView
-            android:id="@+id/stepList"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingHorizontal="20dp"
-            android:paddingBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnCreateBooking"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:text="@string/booking_create_button"
-                    android:textAllCaps="false"
-                    android:textColor="@color/dashboard_text"
-                    android:textStyle="bold"
-                    app:backgroundTint="@color/solar_yellow"
-                    app:cornerRadius="14dp"
-                    app:icon="@drawable/ic_nav_bookings"
-                    app:iconTint="@color/dashboard_text" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="24dp"
-                    android:text="@string/bookings_pending_heading"
-                    android:textColor="@color/dashboard_text"
-                    android:textSize="16sp"
-                    android:textStyle="bold" />
-
-                <LinearLayout
-                    android:id="@+id/pendingList"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:orientation="vertical" />
-
-                <TextView
-                    android:id="@+id/tvPendingEmpty"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:gravity="center"
-                    android:text="@string/bookings_pending_empty"
-                    android:textColor="@color/dashboard_muted"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </androidx.core.widget.NestedScrollView>
-
-        <androidx.core.widget.NestedScrollView
             android:id="@+id/stepStation"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:paddingHorizontal="20dp"
-            android:paddingBottom="16dp"
-            android:visibility="gone">
+            android:paddingBottom="16dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
