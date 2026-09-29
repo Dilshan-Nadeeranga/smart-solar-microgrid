@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.SolarGrid" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.SolarGrid" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/solar_yellow</item>
+        <item name="colorPrimaryVariant">@color/solar_yellow_dark</item>
+        <item name="colorOnPrimary">@color/dashboard_text</item>
+        <item name="colorSecondary">@color/solar_yellow</item>
+        <item name="colorOnSecondary">@color/dashboard_text</item>
+        <item name="android:statusBarColor">@color/dashboard_bg</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:navigationBarColor">@color/white</item>
+    </style>
 
     <!-- Material Components theme used only by the Grid Operator screens. -->
     <style name="Theme.SolarGrid.Operator" parent="Theme.MaterialComponents.Light.NoActionBar">

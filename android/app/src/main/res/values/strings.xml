@@ -1,6 +1,75 @@
 <resources>
     <string name="app_name">SolarGrid</string>
 
+    <string name="nav_home">Home</string>
+    <string name="nav_bookings">Bookings</string>
+    <string name="nav_history">History</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_notifications">Notification</string>
+
+    <string name="dashboard_greeting">Hi %1$s</string>
+    <string name="dashboard_greeting_wave">Hi, %1$s 👋</string>
+    <string name="dashboard_pending_reservations">Pending reservations</string>
+    <string name="dashboard_approved_upcoming">Approved (upcoming)</string>
+    <string name="dashboard_nearby_slots">Active station slots nearby</string>
+    <string name="dashboard_reserve_slot">+ Reserve a slot</string>
+    <string name="dashboard_upcoming_title">Upcoming bookings</string>
+    <string name="dashboard_upcoming_empty">No upcoming approved bookings yet.</string>
+    <string name="dashboard_view_nearby">View nearby stations →</string>
+    <string name="dashboard_nearby_coming">Nearby stations map is coming soon.</string>
+    <string name="dashboard_load_error">Could not load data. Check your connection and try again.</string>
+
+    <string name="bookings_title">Bookings</string>
+
+    <string name="bookings_subtitle">Pending approvals and new reservations</string>
+    <string name="bookings_pending_heading">Pending bookings</string>
+    <string name="bookings_pending_empty">No pending bookings. Create one when you are ready.</string>
+    <string name="booking_create_button">+ Create booking</string>
+
+    <string name="booking_search_stations">Search stations</string>
+    <string name="booking_no_station_match">No stations match your search.</string>
+    <string name="booking_eyebrow_new">New booking</string>
+    <string name="booking_create_title">Create reservation</string>
+    <string name="booking_create_subtitle_app">Select a station, then pick a date and energy slot. Your NIC is taken from your signed-in account.</string>
+    <string name="booking_step_station">Select station</string>
+    <string name="booking_step_slot">Date &amp; energy slot</string>
+    <string name="booking_active_stations_count">%1$d active stations</string>
+    <string name="booking_choose_station_first">Choose a station to see its energy slots.</string>
+    <string name="booking_pick_station">Select a station to continue.</string>
+    <string name="booking_pick_slot">Select an energy slot to continue.</string>
+    <string name="booking_no_slots_day">No slots for this day.</string>
+    <string name="booking_spaces_remaining">%1$d spaces remaining</string>
+    <string name="booking_unavailable">Unavailable</string>
+
+    <string name="station_active_badge">Active</string>
+    <string name="station_capacity_label">Capacity</string>
+    <string name="station_capacity_value">%1$.0f kW</string>
+
+    <string name="booking_summary_eyebrow">New reservation</string>
+    <string name="booking_summary_title">Booking summary</string>
+    <string name="booking_label_prosumer">Prosumer</string>
+    <string name="booking_label_station">Station</string>
+    <string name="booking_label_date">Date</string>
+    <string name="booking_label_time">Time</string>
+    <string name="booking_label_availability">Availability</string>
+    <string name="booking_summary_line">%1$s\n%2$s</string>
+    <string name="booking_status_after">Status after booking</string>
+    <string name="booking_status_pending">Pending</string>
+    <string name="booking_confirm">Confirm booking</string>
+    <string name="booking_policy_note">You can change or cancel until 12 hours before the slot starts. App bookings stay pending until the grid operator approves them.</string>
+    <string name="booking_success">Reservation submitted.</string>
+    <string name="booking_failed">Could not create reservation.</string>
+
+    <string name="continue_label">Continue</string>
+    <string name="back">Back</string>
+
+    <string name="history_title">Booking history</string>
+    <string name="history_subtitle">Completed, cancelled, and rejected bookings</string>
+    <string name="history_empty">No past bookings yet.</string>
+
+    <string name="coming_soon">Coming soon</string>
+    <string name="logout">Logout</string>
+
     <!-- Grid Operator home -->
     <string name="operator_role_label">Grid Operator</string>
     <string name="operator_greeting_morning">Good morning</string>

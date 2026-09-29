@@ -8,7 +8,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.ead.solargrid.api.ApiClient
 import com.ead.solargrid.models.ReservationSummaryResponse
-import com.ead.solargrid.models.Station
+import com.ead.solargrid.models.SolarStation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -105,7 +105,7 @@ class GridOperatorHomeViewModel(application: Application) : AndroidViewModel(app
 
     private fun currentState() = _state.value ?: OperatorHomeState()
 
-    private fun totals(stations: List<Station>) = InfrastructureTotals(
+    private fun totals(stations: List<SolarStation>) = InfrastructureTotals(
         stations = stations.size,
         capacityKw = stations.sumOf { it.capacityKw },
         batterySlots = stations.sumOf { it.batteryStorageSlots }

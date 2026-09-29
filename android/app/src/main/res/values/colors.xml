@@ -8,6 +8,16 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
+    <color name="dashboard_bg">#F5F6FA</color>
+    <color name="dashboard_card">#FFFFFF</color>
+    <color name="dashboard_text">#1C1914</color>
+    <color name="dashboard_muted">#6B7280</color>
+    <color name="solar_yellow">#F5AD00</color>
+    <color name="solar_yellow_dark">#D99400</color>
+    <color name="solar_yellow_soft">#FFF4D6</color>
+    <color name="solar_orange">#F97316</color>
+    <color name="bottom_nav_inactive">#9CA3AF</color>
+
     <!-- Grid Operator screens -->
     <color name="op_primary">#FFB45309</color>
     <color name="op_primary_dark">#FF92400E</color>

@@ -52,6 +52,33 @@ interface ApiService {
         @Query("pageSize") pageSize: Int? = null
     ): Response<ReservationPageResponse>
 
+    @GET("api/reservations/mine")
+    suspend fun getMyReservations(
+        @Query("status") status: String? = null,
+        @Query("pageSize") pageSize: Int = 20
+    ): Response<ReservationPageResponse>
+
     @GET("api/stations")
-    suspend fun getStations(): Response<List<Station>>
+    suspend fun getStations(): Response<List<SolarStation>>
+
+    @GET("api/stations/{id}")
+    suspend fun getStation(@Path("id") id: String): Response<SolarStation>
+
+    @GET("api/stations/{id}/schedules")
+    suspend fun getStationSchedules(@Path("id") id: String): Response<List<StationSchedule>>
+
+    @GET("api/stations/{id}/slots")
+    suspend fun getStationSlots(
+        @Path("id") id: String,
+        @Query("dateUtc") dateUtc: String
+    ): Response<List<EnergyBookingSlotDto>>
+
+    @POST("api/booking-slots/station/{stationId}")
+    suspend fun createBookingSlot(
+        @Path("stationId") stationId: String,
+        @Body body: CreateSlotRequest
+    ): Response<EnergyBookingSlotDto>
+
+    @POST("api/reservations")
+    suspend fun createReservation(@Body body: CreateReservationRequest): Response<CreateReservationResponse>
 }
