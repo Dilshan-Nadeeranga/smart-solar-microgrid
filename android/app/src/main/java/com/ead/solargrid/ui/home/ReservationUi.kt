@@ -1,6 +1,7 @@
 package com.ead.solargrid.ui.home
 
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.ead.solargrid.R
@@ -32,13 +33,30 @@ object ReservationUi {
         }
     }
 
-    fun addBookingRow(parent: LinearLayout, inflater: LayoutInflater, item: ReservationItem) {
+    /** e.g. "Tue, Sep 29 · 09:30 AM", in the same zone as [formatSlotRange]. */
+    fun formatDateTime(instant: Instant): String =
+        instant.atZone(ZoneId.of("Asia/Colombo"))
+            .format(DateTimeFormatter.ofPattern("EEE, MMM d · hh:mm a", Locale.getDefault()))
+
+    /** @param onClick when set, the row is tappable and shows a "Show QR" hint. */
+    fun addBookingRow(
+        parent: LinearLayout,
+        inflater: LayoutInflater,
+        item: ReservationItem,
+        onClick: ((ReservationItem) -> Unit)? = null
+    ) {
         val row = inflater.inflate(R.layout.item_upcoming_booking, parent, false)
         row.findViewById<TextView>(R.id.tvBookingStation).text =
             item.stationName ?: item.stationId
         row.findViewById<TextView>(R.id.tvBookingWhen).text =
             formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc)
         row.findViewById<TextView>(R.id.tvBookingStatus).text = item.status
+        if (onClick != null) {
+            row.findViewById<TextView>(R.id.tvBookingAction).visibility = View.VISIBLE
+            row.isClickable = true
+            row.isFocusable = true
+            row.setOnClickListener { onClick(item) }
+        }
         parent.addView(row)
     }
 }

@@ -72,7 +72,16 @@ dependencies {
     implementation("com.google.android.gms:play-services-location:21.3.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
 
+    // QR: ZXing draws the prosumer's QR; CameraX + ML Kit (bundled model) scan it for the operator
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("androidx.camera:camera-camera2:1.4.1")
+    implementation("androidx.camera:camera-lifecycle:1.4.1")
+    implementation("androidx.camera:camera-view:1.4.1")
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+
     testImplementation(libs.junit)
+    testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
 }
