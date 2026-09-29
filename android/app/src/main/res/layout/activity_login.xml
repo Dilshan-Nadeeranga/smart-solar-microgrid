@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/activityRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/solarix_surface"
     android:orientation="vertical">
 
     <View
@@ -11,53 +13,155 @@
         android:layout_height="0dp"
         android:background="@color/solarix_header" />
 
-    <LinearLayout
+    <ScrollView
         android:id="@+id/activityContent"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:padding="32dp">
+        android:clipToPadding="false"
+        android:fillViewport="true"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="24dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/app_name"
-        android:textSize="32sp"
-        android:textStyle="bold"
-        android:layout_marginBottom="32dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical">
 
-    <EditText
-        android:id="@+id/etNic"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="NIC"
-        android:inputType="text"
-        android:layout_marginBottom="16dp" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/white"
+                app:cardCornerRadius="28dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
 
-    <EditText
-        android:id="@+id/etPassword"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Password"
-        android:inputType="textPassword"
-        android:layout_marginBottom="24dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="20dp"
+                    android:paddingTop="28dp"
+                    android:paddingBottom="20dp">
 
-    <Button
-        android:id="@+id/btnLogin"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Login" />
+                    <ImageView
+                        android:layout_width="200dp"
+                        android:layout_height="48dp"
+                        android:contentDescription="@string/solarix_brand"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/solarix_logo"
+                        app:tint="@null" />
 
-    <TextView
-        android:id="@+id/tvRegister"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Don't have an account? Register"
-        android:textColor="#0000FF"
-        android:layout_marginTop="24dp"
-        android:padding="8dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="22dp"
+                        android:gravity="center"
+                        android:text="@string/login_tagline"
+                        android:textColor="@color/slate_500"
+                        android:textSize="14sp" />
 
-    </LinearLayout>
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@color/white"
+                        app:cardCornerRadius="999dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/booking_search_stroke"
+                        app:strokeWidth="1dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/etNic"
+                            android:layout_width="match_parent"
+                            android:layout_height="52dp"
+                            android:background="@android:color/transparent"
+                            android:hint="@string/login_nic"
+                            android:inputType="text"
+                            android:maxLines="1"
+                            android:paddingHorizontal="18dp"
+                            android:textColor="@color/slate_900"
+                            android:textColorHint="@color/slate_500"
+                            android:textSize="15sp" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp"
+                        app:cardBackgroundColor="@color/white"
+                        app:cardCornerRadius="999dp"
+                        app:cardElevation="0dp"
+                        app:strokeColor="@color/booking_search_stroke"
+                        app:strokeWidth="1dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            app:boxBackgroundMode="none"
+                            app:endIconMode="password_toggle"
+                            app:endIconTint="@color/slate_500"
+                            app:hintEnabled="false">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/etPassword"
+                                android:layout_width="match_parent"
+                                android:layout_height="52dp"
+                                android:background="@android:color/transparent"
+                                android:hint="@string/login_password"
+                                android:inputType="textPassword"
+                                android:maxLines="1"
+                                android:paddingHorizontal="18dp"
+                                android:textColor="@color/slate_900"
+                                android:textColorHint="@color/slate_500"
+                                android:textSize="15sp" />
+                        </com.google.android.material.textfield.TextInputLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnLogin"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:layout_marginTop="20dp"
+                        android:text="@string/login_button"
+                        android:textAllCaps="false"
+                        android:textColor="@color/slate_900"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="@color/solarix_header"
+                        app:cornerRadius="999dp"
+                        app:elevation="2dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="22dp"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/login_no_account"
+                    android:textColor="@color/slate_500"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tvRegister"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="8dp"
+                    android:text="@string/login_register"
+                    android:textColor="@color/booking_eyebrow_amber"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>
