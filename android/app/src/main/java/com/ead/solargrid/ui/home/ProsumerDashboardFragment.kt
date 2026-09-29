@@ -13,6 +13,8 @@ import com.ead.solargrid.database.SessionManager
 import com.ead.solargrid.databinding.FragmentProsumerDashboardBinding
 import com.ead.solargrid.models.ReservationItem
 import com.ead.solargrid.ui.home.qr.ReservationQrActivity
+import com.ead.solargrid.ui.home.upcoming.UpcomingBookings
+import com.ead.solargrid.ui.home.upcoming.UpcomingBookingsActivity
 import kotlinx.coroutines.launch
 
 class ProsumerDashboardFragment : Fragment() {
@@ -49,6 +51,11 @@ class ProsumerDashboardFragment : Fragment() {
         binding.cardNearby.tvSummaryLabel.setText(R.string.dashboard_nearby_slots)
         binding.cardNearby.tvSummaryValue.text = "0"
 
+        binding.cardApproved.root.setOnClickListener {
+            startActivity(UpcomingBookingsActivity.newIntent(requireContext()))
+        }
+        updateApprovedCardDescription()
+
         binding.btnReserveSlot.setOnClickListener {
             (activity as? ProsumerNavigator)?.openNewBookingFlow()
         }
@@ -76,6 +83,7 @@ class ProsumerDashboardFragment : Fragment() {
                     summary.body()?.let { body ->
                         binding.cardPending.tvSummaryValue.text = body.pendingCount.toString()
                         binding.cardApproved.tvSummaryValue.text = body.approvedFutureCount.toString()
+                        updateApprovedCardDescription()
                     }
                 }
 
@@ -86,22 +94,27 @@ class ProsumerDashboardFragment : Fragment() {
                     binding.cardNearby.tvSummaryValue.text = count.toString()
                 }
 
-                val upcoming = api.getMyReservations(status = "Approved", pageSize = 3)
+                // Same rule as the Upcoming bookings page: Approved, slot not ended, soonest first.
+                val now = System.currentTimeMillis()
+                val items = UpcomingBookings.load(api, now)
                 if (_binding == null) return@launch
                 binding.upcomingList.removeAllViews()
-                val items = upcoming.body()?.items.orEmpty()
                 if (items.isEmpty()) {
                     binding.tvUpcomingEmpty.visibility = View.VISIBLE
                     binding.tvUpcomingEmpty.setText(R.string.dashboard_upcoming_empty)
                 } else {
                     binding.tvUpcomingEmpty.visibility = View.GONE
                     items.take(3).forEach { item ->
-                        val showQr = item.status.equals(STATUS_APPROVED, ignoreCase = true)
                         ReservationUi.addBookingRow(
                             binding.upcomingList,
                             inflater,
                             item,
-                            onClick = if (showQr) ::openQr else null
+                            onClick = ::openQr,
+                            statusLabel = if (UpcomingBookings.isInProgress(item, now)) {
+                                getString(R.string.upcoming_in_progress)
+                            } else {
+                                null
+                            }
                         )
                     }
                 }
@@ -113,6 +126,14 @@ class ProsumerDashboardFragment : Fragment() {
         }
     }
 
+    private fun updateApprovedCardDescription() {
+        binding.cardApproved.root.contentDescription = getString(
+            R.string.upcoming_card_description,
+            getString(R.string.dashboard_approved_upcoming),
+            binding.cardApproved.tvSummaryValue.text
+        )
+    }
+
     private fun openQr(item: ReservationItem) {
         startActivity(ReservationQrActivity.newIntent(requireContext(), item))
     }
@@ -120,9 +141,5 @@ class ProsumerDashboardFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    private companion object {
-        const val STATUS_APPROVED = "Approved"
     }
 }
