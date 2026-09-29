@@ -7,9 +7,19 @@
         <item name="colorOnPrimary">@color/dashboard_text</item>
         <item name="colorSecondary">@color/solar_yellow</item>
         <item name="colorOnSecondary">@color/dashboard_text</item>
-        <item name="android:statusBarColor">@color/dashboard_bg</item>
+        <item name="android:statusBarColor">@color/solarix_header</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:navigationBarColor">@color/white</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
+
+    <!-- Plain yellow window only — do not use Theme.SplashScreen animated icon (forces monochrome icon). -->
+    <style name="Theme.SolarGrid.Splash" parent="Theme.SolarGrid">
+        <item name="android:windowBackground">@color/solarix_header</item>
+        <item name="android:statusBarColor">@color/solarix_header</item>
+        <item name="android:navigationBarColor">@color/solarix_header</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+        <item name="android:forceDarkAllowed">false</item>
     </style>
 
     <!-- Material Components theme used only by the Grid Operator screens. -->

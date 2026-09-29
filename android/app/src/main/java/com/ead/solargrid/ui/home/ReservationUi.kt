@@ -5,6 +5,7 @@ import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import com.ead.solargrid.R
+import com.ead.solargrid.databinding.ItemPendingBookingCardBinding
 import com.ead.solargrid.models.ReservationItem
 import java.time.Instant
 import java.time.ZoneId
@@ -58,5 +59,32 @@ object ReservationUi {
             row.setOnClickListener { onClick(item) }
         }
         parent.addView(row)
+    }
+
+    fun addPendingBookingCard(
+        parent: LinearLayout,
+        inflater: LayoutInflater,
+        item: ReservationItem,
+        prosumerName: String?
+    ) {
+        val card = ItemPendingBookingCardBinding.inflate(inflater, parent, false)
+        card.tvCardTitle.text = item.stationName ?: item.stationId
+        card.tvCardWhen.text = formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc)
+        card.tvCardStatus.text = item.status
+        card.tvCardLocation.text = item.stationName ?: item.stationId
+        val name = prosumerName?.trim().orEmpty().ifBlank { "Prosumer" }
+        card.tvCardProsumer.text = name
+        card.tvCardInitials.text = initials(name)
+        parent.addView(card.root)
+    }
+
+    private fun initials(name: String): String {
+        val parts = name.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+        return when {
+            parts.size >= 2 -> "${parts[0].first()}${parts[1].first()}".uppercase(Locale.getDefault())
+            parts.size == 1 && parts[0].length >= 2 -> parts[0].substring(0, 2).uppercase(Locale.getDefault())
+            parts.size == 1 -> parts[0].first().uppercaseChar().toString()
+            else -> "P"
+        }
     }
 }

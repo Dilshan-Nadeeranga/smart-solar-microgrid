@@ -12,6 +12,7 @@ import com.ead.solargrid.R
 import com.ead.solargrid.api.ApiClient
 import com.ead.solargrid.database.SessionManager
 import com.ead.solargrid.models.LoginRequest
+import com.ead.solargrid.ui.SystemBarUtils
 import com.ead.solargrid.ui.home.ProsumerHomeActivity
 import com.ead.solargrid.ui.operator.GridOperatorHomeActivity
 import kotlinx.coroutines.launch
@@ -21,6 +22,10 @@ class LoginActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_login)
+        val root = findViewById<android.view.View>(R.id.activityRoot)
+        val content = findViewById<android.view.View>(R.id.activityContent)
+        val scrim = findViewById<android.view.View>(R.id.statusBarScrim)
+        SystemBarUtils.applyInsetsOnContent(this, root, content, scrim)
 
         val etNic = findViewById<EditText>(R.id.etNic)
         val etPassword = findViewById<EditText>(R.id.etPassword)
