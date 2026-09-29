@@ -80,6 +80,16 @@ data class CreateReservationRequest(
     val stationId: String?
 )
 
+data class UpdateReservationRequest(
+    val slotId: String,
+    val stationId: String?,
+    val version: Long? = null
+)
+
+data class CancelReservationRequest(
+    val version: Long? = null
+)
+
 data class CreateReservationResponse(
     val message: String?,
     val reservationId: String?,

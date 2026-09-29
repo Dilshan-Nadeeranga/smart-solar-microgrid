@@ -287,7 +287,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingHorizontal="20dp"
+            android:paddingHorizontal="16dp"
             android:paddingBottom="16dp"
             android:visibility="gone">
 
@@ -296,55 +296,90 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <include layout="@layout/partial_booking_step_header"
-                    android:id="@+id/headerSlot" />
-
                 <TextView
-                    android:id="@+id/tvSlotMonth"
-                    android:layout_width="wrap_content"
+                    android:id="@+id/tvSlotStepDescription"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_gravity="end"
-                    android:layout_marginTop="-36dp"
-                    android:textColor="@color/dashboard_muted"
-                    android:textSize="13sp" />
+                    android:layout_marginBottom="16dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/booking_slot_step_description"
+                    android:textColor="@color/slate_500"
+                    android:textSize="12sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/booking_pick_date_time"
+                        android:textColor="@color/slate_900"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvSlotMonth"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/slate_500"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <HorizontalScrollView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
+                    android:clipToPadding="false"
+                    android:paddingVertical="4dp"
                     android:scrollbars="none">
 
                     <LinearLayout
                         android:id="@+id/dayChipRow"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal" />
+                        android:orientation="horizontal"
+                        android:paddingEnd="8dp" />
                 </HorizontalScrollView>
+
+                <include
+                    android:id="@+id/headerSlot"
+                    layout="@layout/partial_booking_step_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp" />
 
                 <ProgressBar
                     android:id="@+id/progressSlots"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="24dp" />
+                    android:layout_marginTop="24dp"
+                    android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/tvSlotsPlaceholder"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:layout_marginTop="16dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
                     android:background="@drawable/bg_dashed_box"
                     android:gravity="center"
-                    android:padding="16dp"
+                    android:minHeight="100dp"
+                    android:padding="20dp"
                     android:text="@string/booking_choose_station_first"
-                    android:textColor="@color/dashboard_muted"
+                    android:textColor="@color/slate_500"
+                    android:textSize="13sp"
                     android:visibility="gone" />
 
                 <LinearLayout
                     android:id="@+id/slotList"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
+                    android:layout_marginTop="12dp"
                     android:orientation="vertical"
                     android:visibility="gone" />
             </LinearLayout>
@@ -355,140 +390,249 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
-            android:paddingHorizontal="20dp"
+            android:paddingHorizontal="16dp"
             android:paddingBottom="16dp"
             android:visibility="gone">
 
-            <com.google.android.material.card.MaterialCardView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/dashboard_card"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="3dp">
+                android:orientation="vertical">
 
-                <LinearLayout
+                <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="20dp">
+                    android:layout_marginBottom="16dp"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/booking_summary_description"
+                    android:textColor="@color/slate_500"
+                    android:textSize="12sp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/booking_summary_eyebrow"
-                        android:textAllCaps="true"
-                        android:textColor="@color/solar_yellow_dark"
-                        android:textSize="11sp"
-                        android:textStyle="bold" />
+                <include
+                    android:id="@+id/headerSummary"
+                    layout="@layout/partial_booking_step_header"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6dp"
-                        android:text="@string/booking_summary_title"
-                        android:textColor="@color/dashboard_text"
-                        android:textSize="22sp"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:id="@+id/tvSummaryProsumer"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:textColor="@color/dashboard_muted"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/tvSummaryStation"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="@color/dashboard_muted"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/tvSummaryDate"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="@color/dashboard_muted"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/tvSummaryTime"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="@color/dashboard_muted"
-                        android:textSize="13sp" />
-
-                    <TextView
-                        android:id="@+id/tvSummaryAvailability"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="@color/dashboard_muted"
-                        android:textSize="13sp" />
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp"
+                    app:strokeColor="@color/booking_search_stroke"
+                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="20dp"
-                        android:background="@color/dashboard_bg"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:padding="12dp">
+                        android:orientation="vertical">
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="4dp"
+                            android:background="@color/solarix_header" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <include
+                                android:id="@+id/rowSummaryProsumer"
+                                layout="@layout/partial_booking_summary_row" />
+
+                            <include
+                                android:id="@+id/rowSummaryNic"
+                                layout="@layout/partial_booking_summary_row" />
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:layout_marginBottom="14dp"
+                                android:background="#F1F5F9" />
+
+                            <include
+                                android:id="@+id/rowSummaryStation"
+                                layout="@layout/partial_booking_summary_row" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginBottom="14dp"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <ImageView
+                                    android:layout_width="14dp"
+                                    android:layout_height="14dp"
+                                    android:contentDescription="@null"
+                                    android:src="@drawable/ic_booking_location" />
+
+                                <TextView
+                                    android:id="@+id/tvSummaryStationAddress"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="4dp"
+                                    android:textColor="@color/slate_500"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <View
+                                android:layout_width="match_parent"
+                                android:layout_height="1dp"
+                                android:layout_marginBottom="14dp"
+                                android:background="#F1F5F9" />
+
+                            <include
+                                android:id="@+id/rowSummaryDate"
+                                layout="@layout/partial_booking_summary_row" />
+
+                            <include
+                                android:id="@+id/rowSummaryTime"
+                                layout="@layout/partial_booking_summary_row" />
+
+                            <include
+                                android:id="@+id/rowSummaryAvailability"
+                                layout="@layout/partial_booking_summary_row" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="6dp"
+                                android:background="@drawable/bg_station_count_badge"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal"
+                                android:paddingHorizontal="14dp"
+                                android:paddingVertical="12dp">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="@string/booking_status_after"
+                                    android:textColor="@color/slate_600"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tvSummaryStatusBadge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_summary_pending_chip"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="5dp"
+                                    android:text="@string/booking_status_pending"
+                                    android:textColor="#B45309"
+                                    android:textSize="10sp"
+                                    android:textStyle="bold" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/summaryErrorCard"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:visibility="gone"
+                    app:cardBackgroundColor="@android:color/transparent"
+                    app:cardCornerRadius="14dp"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_booking_summary_error"
+                        android:orientation="vertical"
+                        android:padding="14dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:contentDescription="@null"
+                                android:src="@drawable/ic_op_error"
+                                app:tint="@color/booking_eyebrow_amber" />
+
+                            <TextView
+                                android:id="@+id/tvSummaryErrorTitle"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:textColor="@color/slate_900"
+                                android:textSize="14sp"
+                                android:textStyle="bold" />
+                        </LinearLayout>
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:id="@+id/tvSummaryErrorBody"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:text="@string/booking_status_after"
-                            android:textColor="@color/dashboard_muted"
+                            android:layout_marginStart="32dp"
+                            android:layout_marginTop="6dp"
+                            android:lineSpacingExtra="2dp"
+                            android:textColor="@color/slate_600"
                             android:textSize="13sp" />
 
-                        <TextView
-                            android:id="@+id/tvSummaryStatusBadge"
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnSummaryErrorAction"
+                            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                             android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:background="@drawable/bg_status_pending"
-                            android:paddingHorizontal="12dp"
-                            android:paddingVertical="6dp"
-                            android:text="@string/booking_status_pending"
-                            android:textColor="#B45309"
+                            android:layout_height="40dp"
+                            android:layout_marginStart="24dp"
+                            android:layout_marginTop="12dp"
+                            android:minWidth="0dp"
+                            android:paddingHorizontal="14dp"
+                            android:textAllCaps="false"
+                            android:textColor="@color/booking_eyebrow_amber"
                             android:textSize="12sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:visibility="gone"
+                            app:cornerRadius="999dp"
+                            app:strokeColor="@color/booking_pending_stroke"
+                            app:strokeWidth="1dp" />
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <TextView
-                        android:id="@+id/tvSummaryError"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:textColor="#DC2626"
-                        android:visibility="gone" />
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnConfirmBooking"
+                    style="@style/Widget.MaterialComponents.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:layout_marginTop="20dp"
+                    android:elevation="4dp"
+                    android:text="@string/booking_confirm"
+                    android:textAllCaps="false"
+                    android:textColor="@color/slate_900"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/solarix_header"
+                    app:cornerRadius="12dp"
+                    app:icon="@drawable/ic_chevron_right"
+                    app:iconGravity="textEnd"
+                    app:iconPadding="6dp"
+                    app:iconTint="@color/slate_900" />
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnConfirmBooking"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:layout_marginTop="20dp"
-                        android:text="@string/booking_confirm"
-                        android:textAllCaps="false"
-                        android:textStyle="bold"
-                        app:backgroundTint="@color/solar_yellow"
-                        app:cornerRadius="14dp" />
-
-                    <TextView
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="12dp"
-                        android:gravity="center"
-                        android:text="@string/booking_policy_note"
-                        android:textColor="@color/dashboard_muted"
-                        android:textSize="12sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:lineSpacingExtra="2dp"
+                    android:text="@string/booking_policy_note"
+                    android:textColor="@color/slate_500"
+                    android:textSize="11sp" />
+            </LinearLayout>
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>
 
