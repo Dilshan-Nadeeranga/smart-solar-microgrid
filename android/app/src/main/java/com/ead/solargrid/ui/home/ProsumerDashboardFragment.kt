@@ -48,7 +48,7 @@ class ProsumerDashboardFragment : Fragment() {
         binding.cardNearby.tvSummaryValue.text = "0"
 
         binding.btnReserveSlot.setOnClickListener {
-            (activity as? ProsumerNavigator)?.openBookingsTab()
+            (activity as? ProsumerNavigator)?.openNewBookingFlow()
         }
         binding.btnNearbyStations.setOnClickListener {
             (activity as? ProsumerNavigator)?.showNearbyStationsMessage()
