@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { stationsApi } from '../../../api.js'
 import { useAuth } from '../../../auth/AuthContext'
+import LocationPickerMap from '../../../components/LocationPickerMap.jsx'
 
 const emptyStation = {
   name: '',
@@ -475,10 +476,19 @@ export default function StationsPage() {
                       <span className="text-label-md font-semibold">Station name</span>
                       <input className={fieldClass()} value={editForm.name} onChange={(event) => setEditForm({ ...editForm, name: event.target.value })} />
                     </label>
-                    <label className="flex flex-col gap-1.5 md:col-span-2">
-                      <span className="text-label-md font-semibold">Address</span>
-                      <input className={fieldClass()} value={editForm.address} onChange={(event) => setEditForm({ ...editForm, address: event.target.value })} />
-                    </label>
+                    <div className="md:col-span-2">
+                      <LocationPickerMap
+                        address={editForm.address}
+                        latitude={editForm.latitude}
+                        longitude={editForm.longitude}
+                        onAddressChange={(nextAddress) =>
+                          setEditForm((current) => ({ ...current, address: nextAddress }))
+                        }
+                        onChange={(latitude, longitude) =>
+                          setEditForm((current) => ({ ...current, latitude: String(latitude), longitude: String(longitude) }))
+                        }
+                      />
+                    </div>
                     <label className="flex flex-col gap-1.5">
                       <span className="text-label-md font-semibold">Latitude</span>
                       <input className={fieldClass()} type="number" step="any" value={editForm.latitude} onChange={(event) => setEditForm({ ...editForm, latitude: event.target.value })} />

@@ -4,7 +4,7 @@
     <string name="nav_home">Home</string>
     <string name="nav_map">Map</string>
     <string name="nav_bookings">Bookings</string>
-    <string name="map_title">Nearby Stations</string>
+    <string name="map_title">Nearby Stations Map</string>
     <string name="map_search_hint">Search area (e.g. Colombo 07)</string>
     <string name="map_search_value">Colombo 07</string>
     <string name="map_marker_kollupitiya">Kollupitiya • 1.2km</string>
