@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { stationsApi } from '../../../api.js'
+import LocationPickerMap from '../../../components/LocationPickerMap.jsx'
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
@@ -130,10 +131,19 @@ export default function CreateStationPage() {
             <span className="text-label-md font-semibold">Station name</span>
             <input className={fieldClass} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} />
           </label>
-          <label className="flex flex-col gap-1.5 md:col-span-2">
-            <span className="text-label-md font-semibold">Address</span>
-            <input className={fieldClass} value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
-          </label>
+          <div className="md:col-span-2">
+            <LocationPickerMap
+              address={form.address}
+              latitude={form.latitude}
+              longitude={form.longitude}
+              onAddressChange={(nextAddress) =>
+                setForm((current) => ({ ...current, address: nextAddress }))
+              }
+              onChange={(latitude, longitude) =>
+                setForm((current) => ({ ...current, latitude: String(latitude), longitude: String(longitude) }))
+              }
+            />
+          </div>
           <label className="flex flex-col gap-1.5">
             <span className="text-label-md font-semibold">Latitude (-90 to 90)</span>
             <input className={fieldClass} type="number" step="any" value={form.latitude} onChange={(event) => setForm({ ...form, latitude: event.target.value })} />
