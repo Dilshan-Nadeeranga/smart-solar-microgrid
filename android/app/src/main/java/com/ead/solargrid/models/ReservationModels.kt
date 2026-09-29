@@ -85,3 +85,8 @@ data class CreateReservationResponse(
     val reservationId: String?,
     val reservation: ReservationItem?
 )
+
+data class NearbyStation(
+    val station: SolarStation,
+    val distanceKm: Double
+)

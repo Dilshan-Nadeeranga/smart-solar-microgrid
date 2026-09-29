@@ -1,7 +1,6 @@
 package com.ead.solargrid.ui.home
 
 import android.os.Bundle
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import com.ead.solargrid.R
@@ -17,6 +16,7 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
     private var ignoreBottomNavSelection = false
 
     private val dashboardFragment = ProsumerDashboardFragment()
+    private val mapFragment = StationsMapFragment()
     private val bookingsFragment = MyReservationsFragment()
     private val historyFragment = BookingHistoryFragment()
     private val profileFragment = ProfileFragment()
@@ -54,6 +54,7 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
 
     private fun showFragmentForTab(tabId: Int) {
         val fragment = when (tabId) {
+            R.id.nav_map -> mapFragment
             R.id.nav_bookings -> bookingsFragment
             R.id.nav_history -> historyFragment
             R.id.nav_profile -> profileFragment
@@ -78,7 +79,7 @@ class ProsumerHomeActivity : AppCompatActivity(), ProsumerNavigator {
     }
 
     override fun showNearbyStationsMessage() {
-        Toast.makeText(this, R.string.dashboard_nearby_coming, Toast.LENGTH_SHORT).show()
+        binding.bottomNav.selectedItemId = R.id.nav_map
     }
 
     private fun showFragment(fragment: Fragment) {
