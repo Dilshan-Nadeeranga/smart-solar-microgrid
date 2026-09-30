@@ -1,5 +1,6 @@
 package com.ead.solargrid.ui.home
 
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
@@ -75,7 +76,7 @@ object ReservationUi {
         val card = ItemPendingBookingCardBinding.inflate(inflater, parent, false)
         card.tvCardTitle.text = item.stationName ?: item.stationId
         card.tvCardWhen.text = formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc)
-        card.tvCardStatus.text = item.status
+        applyStatusChip(card, item.status)
         card.tvCardLocation.text = item.stationName ?: item.stationId
         val name = prosumerName?.trim().orEmpty().ifBlank { "Prosumer" }
         card.tvCardProsumer.text = name
@@ -86,6 +87,44 @@ object ReservationUi {
             card.root.setOnClickListener { onClick(item) }
         }
         parent.addView(card.root)
+    }
+
+    private fun applyStatusChip(card: ItemPendingBookingCardBinding, status: String) {
+        val key = status.trim().lowercase(Locale.getDefault())
+        val label: Int
+        val chip: Int
+        val dot: Int
+        val color: Int
+        when (key) {
+            "approved", "completed" -> {
+                label = if (key == "completed") R.string.booking_status_completed else R.string.booking_status_approved
+                chip = R.drawable.bg_approved_status_chip
+                dot = R.drawable.bg_green_dot
+                color = Color.parseColor("#166534")
+            }
+            "cancelled" -> {
+                label = R.string.booking_status_cancelled
+                chip = R.drawable.bg_cancelled_status_chip
+                dot = R.drawable.bg_gray_dot
+                color = Color.parseColor("#475569")
+            }
+            "rejected" -> {
+                label = R.string.booking_status_rejected
+                chip = R.drawable.bg_rejected_status_chip
+                dot = R.drawable.bg_red_dot
+                color = Color.parseColor("#B91C1C")
+            }
+            else -> {
+                label = R.string.booking_status_pending
+                chip = R.drawable.bg_pending_status_chip
+                dot = R.drawable.bg_amber_dot
+                color = Color.parseColor("#92400E")
+            }
+        }
+        card.tvCardStatus.setText(label)
+        card.statusChip.setBackgroundResource(chip)
+        card.statusDot.setBackgroundResource(dot)
+        card.tvCardStatus.setTextColor(color)
     }
 
     private fun initials(name: String): String {

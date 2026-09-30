@@ -8,5 +8,7 @@ data class User(
     val phone: String?,
     val address: String?,
     val role: String,
-    val accountStatus: String
+    val accountStatus: String,
+    val emailVerified: Boolean? = null,
+    val nicVerificationStatus: String? = null
 )

@@ -1,6 +1,9 @@
 package com.ead.solargrid.ui.home
 
+import android.app.Dialog
+import android.graphics.Color
 import android.graphics.Typeface
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.TypedValue
 import androidx.core.content.ContextCompat
@@ -15,11 +18,14 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.lifecycle.lifecycleScope
 import com.ead.solargrid.R
 import com.ead.solargrid.api.ApiClient
 import com.ead.solargrid.database.SessionManager
+import com.ead.solargrid.databinding.DialogBookingActionsBinding
+import com.ead.solargrid.databinding.DialogBookingCancelBinding
+import com.ead.solargrid.databinding.DialogBookingFilterBinding
+import com.ead.solargrid.databinding.DialogBookingMessageBinding
 import com.ead.solargrid.databinding.FragmentProsumerBookingsBinding
 import com.ead.solargrid.databinding.ItemBookingSlotRowBinding
 import com.ead.solargrid.databinding.ItemBookingStationCardBinding
@@ -48,8 +54,10 @@ class MyReservationsFragment : Fragment() {
 
     private var step = Step.LIST
     private var stations: List<SolarStation> = emptyList()
+    private enum class BookingListFilter { BOTH, PENDING, APPROVED }
+
     private var pendingItems: List<ReservationItem> = emptyList()
-    private var pendingSortNewestFirst = true
+    private var listFilter = BookingListFilter.BOTH
     private var selectedStation: SolarStation? = null
     private var loadedSlots: List<EnergyBookingSlotDto> = emptyList()
     private var selectedSlot: EnergyBookingSlotDto? = null
@@ -77,10 +85,7 @@ class MyReservationsFragment : Fragment() {
         setupStepHeaders()
 
         binding.btnCreateBooking.setOnClickListener { startCreateBooking() }
-        binding.btnPendingFilter.setOnClickListener {
-            pendingSortNewestFirst = !pendingSortNewestFirst
-            renderPendingBookings()
-        }
+        binding.btnPendingFilter.setOnClickListener { showBookingFilter() }
         binding.btnBookingBack.setOnClickListener { onBackPressed() }
         binding.btnBookingContinue.setOnClickListener { onContinue() }
         binding.btnConfirmBooking.setOnClickListener { confirmBooking() }
@@ -285,11 +290,60 @@ class MyReservationsFragment : Fragment() {
         }
     }
 
+    private fun showRoundedDialog(content: android.view.View): Dialog {
+        val dialog = Dialog(requireContext())
+        dialog.setContentView(content)
+        dialog.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        dialog.window?.setLayout(
+            (resources.displayMetrics.widthPixels * 0.88f).toInt(),
+            ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        dialog.show()
+        return dialog
+    }
+
+    private fun showBookingFilter() {
+        val dialogBinding = DialogBookingFilterBinding.inflate(layoutInflater)
+        val dialog = showRoundedDialog(dialogBinding.root)
+        var selected = listFilter
+        fun paint() {
+            val density = resources.displayMetrics.density
+            listOf(
+                dialogBinding.optionBoth to BookingListFilter.BOTH,
+                dialogBinding.optionPending to BookingListFilter.PENDING,
+                dialogBinding.optionApproved to BookingListFilter.APPROVED
+            ).forEach { (card, filter) ->
+                val on = filter == selected
+                card.strokeWidth = ((if (on) 2.5f else 1f) * density).toInt()
+                card.strokeColor = ContextCompat.getColor(
+                    requireContext(),
+                    if (on) R.color.booking_card_selected_stroke else R.color.booking_search_stroke
+                )
+            }
+        }
+        paint()
+        dialogBinding.optionBoth.setOnClickListener { selected = BookingListFilter.BOTH; paint() }
+        dialogBinding.optionPending.setOnClickListener { selected = BookingListFilter.PENDING; paint() }
+        dialogBinding.optionApproved.setOnClickListener { selected = BookingListFilter.APPROVED; paint() }
+        dialogBinding.btnApplyFilter.setOnClickListener {
+            listFilter = selected
+            renderPendingBookings()
+            dialog.dismiss()
+        }
+    }
+
     private fun loadPendingBookings() {
         viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val api = ApiClient.getApiService(requireContext())
-                pendingItems = api.getMyReservations(status = "Pending", pageSize = 50).body()?.items.orEmpty()
+                val pending = api.getMyReservations(status = "Pending", pageSize = 50).body()?.items.orEmpty()
+                val approved = api.getMyReservations(status = "Approved", pageSize = 50).body()?.items.orEmpty()
+                pendingItems = (pending + approved)
+                    .distinctBy { it.id }
+                    .filter { item ->
+                        item.status.equals("Pending", ignoreCase = true) ||
+                            item.status.equals("Approved", ignoreCase = true)
+                    }
                 if (_binding == null) return@launch
                 renderPendingBookings()
             } catch (_: Exception) {
@@ -300,17 +354,39 @@ class MyReservationsFragment : Fragment() {
         }
     }
 
+    private fun visibleBookings(): List<ReservationItem> {
+        return pendingItems.filter { item ->
+            when (listFilter) {
+                BookingListFilter.PENDING -> item.status.equals("Pending", ignoreCase = true)
+                BookingListFilter.APPROVED -> item.status.equals("Approved", ignoreCase = true)
+                BookingListFilter.BOTH -> true
+            }
+        }
+    }
+
     private fun renderPendingBookings() {
         val userName = SessionManager(requireContext()).getUserSession()?.name
-        val sorted = pendingItems.sortedBy { item ->
-            val t = BookingRules.parseInstant(item.slotStartTimeUtc)?.toEpochMilli() ?: 0L
-            if (pendingSortNewestFirst) -t else t
+        val sorted = visibleBookings().sortedByDescending { item ->
+            BookingRules.parseInstant(item.slotStartTimeUtc)?.toEpochMilli() ?: 0L
         }
         binding.tvPendingCount.text = sorted.size.toString()
+        binding.tvBookingsHeading.setText(
+            when (listFilter) {
+                BookingListFilter.PENDING -> R.string.bookings_filter_pending
+                BookingListFilter.APPROVED -> R.string.bookings_filter_approved
+                BookingListFilter.BOTH -> R.string.bookings_pending_heading
+            }
+        )
         binding.pendingList.removeAllViews()
         if (sorted.isEmpty()) {
             binding.tvPendingEmpty.isVisible = true
-            binding.tvPendingEmpty.setText(R.string.bookings_pending_empty)
+            binding.tvPendingEmpty.setText(
+                when (listFilter) {
+                    BookingListFilter.PENDING -> R.string.bookings_pending_empty
+                    BookingListFilter.APPROVED -> R.string.bookings_approved_empty
+                    BookingListFilter.BOTH -> R.string.bookings_active_empty
+                }
+            )
         } else {
             binding.tvPendingEmpty.isVisible = false
             sorted.forEach { item ->
@@ -327,30 +403,37 @@ class MyReservationsFragment : Fragment() {
     private fun openBookingActions(item: ReservationItem) {
         val blocked = BookingRules.changeBlockedReason(item.status, item.slotStartTimeUtc)
         if (blocked != null) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setTitle(item.stationName ?: getString(R.string.booking_actions_title))
-                .setMessage(blocked)
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
+            val messageBinding = DialogBookingMessageBinding.inflate(layoutInflater)
+            val dialog = showRoundedDialog(messageBinding.root)
+            messageBinding.tvMessageTitle.text = item.stationName ?: getString(R.string.booking_actions_title)
+            messageBinding.tvMessageBody.text = blocked
+            messageBinding.btnMessageOk.setOnClickListener { dialog.dismiss() }
             return
         }
 
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(item.stationName ?: getString(R.string.booking_actions_title))
-            .setMessage(ReservationUi.formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc))
-            .setPositiveButton(R.string.booking_action_edit) { _, _ -> startEditBooking(item) }
-            .setNegativeButton(R.string.booking_action_cancel) { _, _ -> confirmCancelBooking(item) }
-            .setNeutralButton(android.R.string.cancel, null)
-            .show()
+        val actionsBinding = DialogBookingActionsBinding.inflate(layoutInflater)
+        val dialog = showRoundedDialog(actionsBinding.root)
+        actionsBinding.tvActionTitle.text = item.stationName ?: getString(R.string.booking_actions_title)
+        actionsBinding.tvActionWhen.text = ReservationUi.formatSlotRange(item.slotStartTimeUtc, item.slotEndTimeUtc)
+        actionsBinding.btnEditBooking.setOnClickListener {
+            dialog.dismiss()
+            startEditBooking(item)
+        }
+        actionsBinding.btnCancelBooking.setOnClickListener {
+            dialog.dismiss()
+            confirmCancelBooking(item)
+        }
+        actionsBinding.btnCloseActions.setOnClickListener { dialog.dismiss() }
     }
 
     private fun confirmCancelBooking(item: ReservationItem) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle(R.string.booking_cancel_confirm_title)
-            .setMessage(R.string.booking_cancel_confirm_body)
-            .setNegativeButton(R.string.booking_keep, null)
-            .setPositiveButton(R.string.booking_action_cancel) { _, _ -> cancelBooking(item) }
-            .show()
+        val cancelBinding = DialogBookingCancelBinding.inflate(layoutInflater)
+        val dialog = showRoundedDialog(cancelBinding.root)
+        cancelBinding.btnKeepBooking.setOnClickListener { dialog.dismiss() }
+        cancelBinding.btnConfirmCancel.setOnClickListener {
+            dialog.dismiss()
+            cancelBooking(item)
+        }
     }
 
     private fun cancelBooking(item: ReservationItem) {
