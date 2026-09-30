@@ -78,7 +78,8 @@ interface ApiService {
     @GET("api/stations/{id}/slots")
     suspend fun getStationSlots(
         @Path("id") id: String,
-        @Query("dateUtc") dateUtc: String
+        @Query("dateUtc") dateUtc: String,
+        @Query("includeFull") includeFull: Boolean = false
     ): Response<List<EnergyBookingSlotDto>>
 
     @POST("api/booking-slots/station/{stationId}")

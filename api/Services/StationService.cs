@@ -85,10 +85,22 @@ public class StationService
 
     public async Task<List<EnergyBookingSlot>> GetAvailableSlotsAsync(
         string stationId,
-        DateTime dateUtc)
+        DateTime dateUtc,
+        bool includeFull = false)
     {
         var start = dateUtc.Date;
         var end = start.AddDays(1);
+
+        if (includeFull)
+        {
+            return await _slots.Find(slot =>
+                    slot.StationId == stationId &&
+                    slot.IsActive &&
+                    slot.StartTimeUtc >= start &&
+                    slot.StartTimeUtc < end)
+                .SortBy(slot => slot.StartTimeUtc)
+                .ToListAsync();
+        }
 
         return await _slots.Find(slot =>
                 slot.StationId == stationId &&
