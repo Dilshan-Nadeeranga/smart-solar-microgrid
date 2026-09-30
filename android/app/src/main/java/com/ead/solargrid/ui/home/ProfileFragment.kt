@@ -143,25 +143,22 @@ class ProfileFragment : Fragment() {
 
     private fun updateProfile(nic: String?, request: com.ead.solargrid.models.UpdateProfileRequest, session: SessionManager) {
         if (nic == null) return
-        androidx.lifecycle.lifecycleScope.launchWhenStarted {
+        viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val response = com.ead.solargrid.api.RetrofitClient.apiService.updateProfile(nic, request)
+                val response = ApiClient.getApiService(requireContext()).updateProfile(nic, request)
                 if (response.isSuccessful) {
                     val updatedUser = response.body()
-                    if (updatedUser != null) {
-                        // Keep our User model updated with what the server returns
-                        val newModelUser = User(
+                    if (updatedUser != null && _binding != null) {
+                        session.saveUserSession(
                             nic = updatedUser.nic,
                             name = updatedUser.name,
                             email = updatedUser.email,
-                            phone = updatedUser.phone,
-                            address = updatedUser.address,
+                            phone = updatedUser.phone.orEmpty(),
+                            address = updatedUser.address.orEmpty(),
                             role = updatedUser.role,
-                            accountStatus = updatedUser.accountStatus,
-                            nicVerificationStatus = "VERIFIED"
+                            accountStatus = updatedUser.accountStatus
                         )
-                        session.saveUserSession(newModelUser)
-                        showUser(newModelUser)
+                        showUser(updatedUser)
                         android.widget.Toast.makeText(requireContext(), "Profile Updated", android.widget.Toast.LENGTH_SHORT).show()
                     }
                 } else {
@@ -179,10 +176,10 @@ class ProfileFragment : Fragment() {
             .setTitle("Request Deactivation")
             .setMessage("Are you sure you want to deactivate your account? This action requires backoffice approval.")
             .setPositiveButton("Yes") { _, _ ->
-                androidx.lifecycle.lifecycleScope.launchWhenStarted {
+                viewLifecycleOwner.lifecycleScope.launch {
                     try {
-                        val response = com.ead.solargrid.api.RetrofitClient.apiService.requestDeactivation(nic)
-                        if (response.isSuccessful) {
+                        val response = ApiClient.getApiService(requireContext()).requestDeactivation(nic)
+                        if (response.isSuccessful && _binding != null) {
                             android.widget.Toast.makeText(requireContext(), "Deactivation Requested", android.widget.Toast.LENGTH_SHORT).show()
                             binding.tvProfileStatus.text = pretty("DEACTIVATION_REQUESTED")
                         } else {
