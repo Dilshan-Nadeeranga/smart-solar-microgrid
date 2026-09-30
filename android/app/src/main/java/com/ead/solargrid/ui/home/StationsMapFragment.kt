@@ -1,15 +1,17 @@
 package com.ead.solargrid.ui.home
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Bundle
+import android.view.MotionEvent
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -51,6 +53,9 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
     private var googleMap: GoogleMap? = null
     private var userLocation: LatLng? = null
     private var selected: SolarStation? = null
+    private var applyingSuggestion = false
+    private var sheetShown = false
+    private var nearbyOrder: List<SolarStation> = emptyList()
     private val markers = mutableListOf<Pair<Marker, SolarStation>>()
 
     private val locationPermission = registerForActivityResult(
@@ -82,13 +87,16 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
         }
         binding.btnUseLocation.setOnClickListener { requestLocation() }
         binding.btnMyLocation.setOnClickListener { requestLocation() }
-        binding.btnDirections.setOnClickListener { openDirections() }
         binding.btnViewStation.setOnClickListener { focusSelected() }
+        enableSheetDrag()
+        enableSheetSwipe()
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
-                filterMarkers(s?.toString().orEmpty())
+                val query = s?.toString().orEmpty()
+                filterMarkers(query)
+                if (!applyingSuggestion) showSuggestions(query)
             }
         })
 
@@ -110,8 +118,10 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
         map.uiSettings.isMapToolbarEnabled = false
         map.setOnMarkerClickListener { marker ->
             (marker.tag as? SolarStation)?.let { showStation(it) }
+            hideSuggestions()
             false
         }
+        map.setOnMapClickListener { hideSuggestions() }
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(COLOMBO, 12f))
         if (hasLocationPermission()) {
             enableMyLocation()
@@ -122,6 +132,7 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
     override fun onDestroyView() {
         markers.clear()
         googleMap = null
+        sheetShown = false
         _binding = null
         super.onDestroyView()
     }
@@ -200,6 +211,7 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
             } catch (_: Exception) {
                 if (_binding == null) return@launch
                 binding.tvStationName.setText(R.string.dashboard_load_error)
+                pullUpSheet()
             }
         }
     }
@@ -213,14 +225,15 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
                 MarkerOptions()
                     .position(LatLng(station.latitude, station.longitude))
                     .title(station.name)
-                    .snippet(station.address)
                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
             ) ?: return@forEach
             marker.tag = station
             markers += marker to station
         }
         filterMarkers(binding.etSearch.text?.toString().orEmpty())
-        val focus = nearest(stations) ?: stations.firstOrNull()
+        val origin = userLocation ?: COLOMBO
+        nearbyOrder = stations.sortedBy { distanceKm(origin, LatLng(it.latitude, it.longitude)) }
+        val focus = nearbyOrder.firstOrNull()
         if (focus != null) {
             showStation(focus)
         }
@@ -268,6 +281,200 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
         } else {
             getString(R.string.map_distance_km, distanceKm(here, LatLng(station.latitude, station.longitude)))
         }
+        pullUpSheet()
+    }
+
+    private fun pullUpSheet() {
+        if (sheetShown || _binding == null) return
+        sheetShown = true
+        val sheet = binding.stationSheet
+        sheet.post {
+            if (_binding == null) return@post
+            sheet.translationY = sheet.height.toFloat()
+            sheet.visibility = View.VISIBLE
+            sheet.animate()
+                .translationY(0f)
+                .setDuration(450)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .start()
+        }
+    }
+
+    private fun enableSheetDrag() {
+        val sheet = binding.stationSheet
+        var downY = 0f
+        binding.sheetHandle.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downY = event.rawY
+                    sheet.animate().cancel()
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dragged = (event.rawY - downY).coerceAtLeast(0f)
+                    sheet.translationY = dragged.coerceAtMost(sheet.height.toFloat())
+                    true
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    val hide = sheet.translationY > sheet.height * 0.28f
+                    sheet.animate()
+                        .translationY(if (hide) sheet.height.toFloat() else 0f)
+                        .setDuration(220)
+                        .setInterpolator(android.view.animation.DecelerateInterpolator())
+                        .withEndAction {
+                            if (hide && _binding != null) {
+                                sheet.visibility = View.INVISIBLE
+                                sheet.translationY = 0f
+                                sheetShown = false
+                            }
+                        }
+                        .start()
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun enableSheetSwipe() {
+        val sheet = binding.stationSheet
+        val slop = android.view.ViewConfiguration.get(sheet.context).scaledTouchSlop
+        var downX = 0f
+        var downY = 0f
+        var swiping = false
+        sheet.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.rawX
+                    downY = event.rawY
+                    swiping = false
+                    false
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - downX
+                    val dy = event.rawY - downY
+                    if (!swiping && kotlin.math.abs(dx) > slop && kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
+                        swiping = true
+                        sheet.animate().cancel()
+                    }
+                    if (swiping) {
+                        sheet.translationX = dx
+                        true
+                    } else {
+                        false
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    if (!swiping) return@setOnTouchListener false
+                    val index = nearbyOrder.indexOfFirst { it.id == selected?.id }.coerceAtLeast(0)
+                    val step = when {
+                        nearbyOrder.size <= 1 -> 0
+                        sheet.translationX < -sheet.width * 0.22f && index < nearbyOrder.lastIndex -> 1
+                        sheet.translationX > sheet.width * 0.22f && index > 0 -> -1
+                        else -> 0
+                    }
+                    if (step != 0) {
+                        val exitX = if (step > 0) -sheet.width.toFloat() else sheet.width.toFloat()
+                        val enterX = -exitX * 0.35f
+                        sheet.animate()
+                            .translationX(exitX)
+                            .setDuration(160)
+                            .withEndAction {
+                                if (_binding == null) return@withEndAction
+                                showNearby(step)
+                                sheet.translationX = enterX
+                                sheet.animate().translationX(0f).setDuration(180).start()
+                            }
+                            .start()
+                    } else {
+                        sheet.animate().translationX(0f).setDuration(160).start()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun showNearby(step: Int) {
+        val order = nearbyOrder
+        if (order.isEmpty()) return
+        val index = order.indexOfFirst { it.id == selected?.id }.coerceAtLeast(0)
+        val next = order[(index + step).coerceIn(0, order.lastIndex)]
+        showStation(next)
+        googleMap?.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(LatLng(next.latitude, next.longitude), 15f)
+        )
+        markers.firstOrNull { it.second.id == next.id }?.first?.showInfoWindow()
+    }
+
+    private fun showSuggestions(query: String) {
+        val list = binding.suggestionList
+        list.removeAllViews()
+        val text = query.trim()
+        val matches = if (text.isEmpty()) {
+            emptyList()
+        } else {
+            markers.map { it.second }
+                .filter {
+                    it.name.contains(text, ignoreCase = true) ||
+                        it.address.orEmpty().contains(text, ignoreCase = true)
+                }
+                .take(5)
+        }
+        if (matches.isEmpty()) {
+            list.visibility = View.GONE
+            return
+        }
+        val density = resources.displayMetrics.density
+        val padH = (14 * density).toInt()
+        val padV = (10 * density).toInt()
+        matches.forEach { station ->
+            val row = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(padH, padV, padH, padV)
+                setOnClickListener { selectSuggestion(station) }
+            }
+            row.addView(TextView(requireContext()).apply {
+                this.text = station.name
+                setTextColor(0xFF0B1C30.toInt())
+                textSize = 14f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+            })
+            val address = station.address?.takeIf { it.isNotBlank() }
+            if (address != null) {
+                row.addView(TextView(requireContext()).apply {
+                    this.text = address
+                    setTextColor(0xFF4D4632.toInt())
+                    textSize = 12f
+                    maxLines = 1
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                })
+            }
+            list.addView(row)
+        }
+        list.visibility = View.VISIBLE
+    }
+
+    private fun selectSuggestion(station: SolarStation) {
+        applyingSuggestion = true
+        binding.etSearch.setText(station.name)
+        binding.etSearch.setSelection(station.name.length)
+        applyingSuggestion = false
+        hideSuggestions()
+        val input = context?.getSystemService(InputMethodManager::class.java)
+        input?.hideSoftInputFromWindow(binding.etSearch.windowToken, 0)
+        showStation(station)
+        googleMap?.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(LatLng(station.latitude, station.longitude), 15f)
+        )
+        markers.firstOrNull { it.second.id == station.id }?.first?.showInfoWindow()
+    }
+
+    private fun hideSuggestions() {
+        if (_binding == null) return
+        binding.suggestionList.removeAllViews()
+        binding.suggestionList.visibility = View.GONE
     }
 
     private fun filterMarkers(query: String) {
@@ -279,23 +486,11 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
         }
     }
 
-    private fun nearest(stations: List<SolarStation>): SolarStation? {
-        val here = userLocation ?: return null
-        return stations.minByOrNull { distanceKm(here, LatLng(it.latitude, it.longitude)) }
-    }
-
     private fun focusSelected() {
         val station = selected ?: return
         googleMap?.animateCamera(
             CameraUpdateFactory.newLatLngZoom(LatLng(station.latitude, station.longitude), 15f)
         )
-    }
-
-    private fun openDirections() {
-        val station = selected ?: return
-        val label = Uri.encode(station.name)
-        val uri = Uri.parse("geo:${station.latitude},${station.longitude}?q=${station.latitude},${station.longitude}($label)")
-        startActivity(Intent(Intent.ACTION_VIEW, uri))
     }
 
     private fun distanceKm(from: LatLng, to: LatLng): Double {
