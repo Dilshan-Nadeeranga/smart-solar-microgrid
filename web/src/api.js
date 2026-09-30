@@ -60,13 +60,16 @@ export const authApi = {
 }
 
 export const usersApi = {
+  getAll: () => request('/users'),
   getProfile: (nic) => request(`/users/${nic}`),
   createProsumer: (body) => request('/users', { method: 'POST', body: JSON.stringify(body) }),
   createStaff: (body) => request('/users/staff', { method: 'POST', body: JSON.stringify(body) }),
   getPending: () => request('/users/pending'),
+  validateNicAi: (nic) => request(`/users/${encodeURIComponent(nic)}/validate-nic-ai`, { method: 'POST' }),
   activate: (nic) => request(`/users/${nic}/activate`, { method: 'PATCH' }),
   deactivate: (nic) => request(`/users/${nic}/deactivate`, { method: 'PATCH' }),
   reactivate: (nic) => request(`/users/${nic}/reactivate`, { method: 'PATCH' }),
+  reject: (nic, reason) => request(`/users/${nic}/reject`, { method: 'PATCH', body: JSON.stringify({ reason }) }),
   listProsumers: () => request('/users/prosumers'),
   getBookingProfile: (nic) => request(`/users/${encodeURIComponent(nic)}/booking`),
 }

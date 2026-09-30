@@ -16,6 +16,13 @@ public class UserController : ControllerBase
         _userService = userService;
     }
 
+    [Authorize(Roles = "BACKOFFICE")]
+    [HttpGet]
+    public async Task<IActionResult> GetAllUsers()
+    {
+        var users = await _userService.GetAllAsync();
+        return Ok(users.Select(UserResponse.FromUser));
+    }
 
     [AllowAnonymous]
     [HttpGet("prosumers")]
@@ -283,6 +290,20 @@ public async Task<IActionResult> ActivateUser(string nic)
     return Ok(new { message = result.Message });
 }
 
+public class RejectRequest { public string Reason { get; set; } = ""; }
+
+[Authorize(Roles = "BACKOFFICE")]
+[HttpPatch("{nic}/reject")]
+public async Task<IActionResult> RejectRegistration(string nic, [FromBody] RejectRequest request)
+{
+    var result = await _userService.RejectRegistrationAsync(nic, request.Reason);
+    if (!result.Success)
+    {
+        return BadRequest(new { message = result.Message });
+    }
+    return Ok(new { message = result.Message });
+}
+
     [Authorize(Roles = "BACKOFFICE")]
     [HttpGet("backoffice-test")]
     public IActionResult BackofficeTest()
@@ -359,5 +380,17 @@ public async Task<IActionResult> ActivateUser(string nic)
             return NotFound(new { message = result.Message });
         }
         return File(result.FileBytes, result.ContentType, result.FileName ?? "document");
+    }
+
+    [Authorize(Roles = "BACKOFFICE")]
+    [HttpPost("{nic}/validate-nic-ai")]
+    public async Task<IActionResult> ValidateNicWithAi(string nic)
+    {
+        var result = await _userService.ValidateNicWithAiAsync(nic);
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.Message });
+        }
+        return Ok(new { message = result.Message, aiResponse = result.AiResponse });
     }
 }
