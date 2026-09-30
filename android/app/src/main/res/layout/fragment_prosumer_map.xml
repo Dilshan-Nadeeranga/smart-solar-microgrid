@@ -18,7 +18,8 @@
             android:background="@drawable/bg_map_circle_yellow"
             android:contentDescription="@string/map_title"
             android:padding="8dp"
-            android:src="@drawable/ic_map_bolt" />
+            android:scaleType="fitCenter"
+            android:src="@drawable/thunder" />
 
         <TextView
             android:layout_width="0dp"
@@ -295,10 +296,11 @@
                 <ImageView
                     android:layout_width="40dp"
                     android:layout_height="40dp"
-                    android:background="@drawable/bg_map_icon_soft"
+                    android:background="@drawable/bg_map_icon_yellow_square"
                     android:contentDescription="@string/map_power_label"
                     android:padding="8dp"
-                    android:src="@drawable/ic_map_bolt" />
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/thunder" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -340,7 +342,8 @@
                     android:background="@drawable/bg_map_icon_green"
                     android:contentDescription="@string/map_slots_label"
                     android:padding="8dp"
-                    android:src="@drawable/ic_map_battery" />
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/battery" />
 
                 <LinearLayout
                     android:layout_width="wrap_content"
@@ -367,29 +370,38 @@
             </LinearLayout>
         </LinearLayout>
 
-        <LinearLayout
-            android:id="@+id/btnViewStation"
+        <TextView
+            android:id="@+id/tvSlideHours"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:layout_marginTop="14dp"
-            android:background="@drawable/bg_map_cta"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
             android:gravity="center"
-            android:orientation="horizontal">
+            android:text="@string/map_slide_hours"
+            android:textColor="#555E74"
+            android:textSize="12sp" />
+
+        <LinearLayout
+            android:id="@+id/schedulePanel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="vertical"
+            android:visibility="gone">
 
             <TextView
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/map_view_station"
-                android:textColor="#231B00"
+                android:text="@string/map_weekly_schedule"
+                android:textColor="#0B1C30"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:layout_marginStart="8dp"
-                android:contentDescription="@string/map_view_station"
-                android:src="@drawable/ic_map_arrow" />
+            <LinearLayout
+                android:id="@+id/scheduleRows"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical" />
         </LinearLayout>
         </LinearLayout>
     </FrameLayout>

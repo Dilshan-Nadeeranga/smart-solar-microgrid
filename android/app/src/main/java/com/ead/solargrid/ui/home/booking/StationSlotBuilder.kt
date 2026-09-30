@@ -7,8 +7,8 @@ import com.ead.solargrid.models.StationSchedule
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 import kotlin.math.abs
@@ -22,6 +22,80 @@ object StationSlotBuilder {
         val slots: List<EnergyBookingSlotDto>,
         val schedules: List<StationSchedule>
     )
+
+    data class DaySlotSummary(
+        val title: String,
+        val hoursLabel: String,
+        val remaining: Int,
+        val booked: Int,
+        val closed: Boolean
+    )
+
+    suspend fun summarizeUpcomingDays(
+        api: ApiService,
+        stationId: String,
+        dayCount: Int = 7
+    ): List<DaySlotSummary> {
+        val station = api.getStation(stationId).body()
+        val schedules = api.getStationSchedules(stationId).body().orEmpty()
+        val days = localDays(dayCount)
+        val capacity = if ((station?.batteryStorageSlots ?: 0) > 0) station!!.batteryStorageSlots else 1
+        val slots = utcDatesCovering(days).flatMap { date ->
+            api.getStationSlots(stationId, date, includeFull = true).body().orEmpty()
+        }.distinctBy { it.id }
+        val formatter = DateTimeFormatter.ofPattern("EEE, d MMM", Locale.US)
+
+        return days.map { day ->
+            val schedule = schedules.find { it.day.equals(weekdayName(day), ignoreCase = true) }
+            val closed = schedule == null || !schedule.isAvailable
+            val hours = if (closed || schedule == null) {
+                emptyList()
+            } else {
+                hourlyWindows(localDateTime(day, schedule.openingTime), localDateTime(day, schedule.closingTime))
+            }
+            val daySlots = slots.filter { dayKey(it.startTimeUtc) == dayKey(day) }
+            var remaining = 0
+            var booked = 0
+            val used = mutableSetOf<String>()
+            if (!closed) {
+                for ((start, end) in hours) {
+                    val startMs = start.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    val endMs = end.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
+                    val match = daySlots.find { slot ->
+                        val slotStart = BookingRules.parseInstant(slot.startTimeUtc)?.toEpochMilli() ?: return@find false
+                        val slotEnd = BookingRules.parseInstant(slot.endTimeUtc)?.toEpochMilli() ?: return@find false
+                        abs(slotStart - startMs) < 60_000 && abs(slotEnd - endMs) < 60_000
+                    }
+                    if (match != null) {
+                        used.add(match.id)
+                        remaining += match.remainingBookings
+                        booked += match.reservedBookings
+                    } else {
+                        remaining += capacity
+                    }
+                }
+                for (slot in daySlots) {
+                    if (used.contains(slot.id)) continue
+                    remaining += slot.remainingBookings
+                    booked += slot.reservedBookings
+                }
+            }
+            val hoursLabel = if (closed || schedule == null) {
+                "Closed"
+            } else {
+                "${clock(schedule.openingTime)} – ${clock(schedule.closingTime)}"
+            }
+            DaySlotSummary(
+                title = day.format(formatter),
+                hoursLabel = hoursLabel,
+                remaining = remaining,
+                booked = booked,
+                closed = closed
+            )
+        }
+    }
+
+    private fun clock(value: String): String = if (value.length >= 5) value.take(5) else value
 
     suspend fun loadSelectableSlots(api: ApiService, stationId: String): SlotLoadResult {
         val stationResp = api.getStation(stationId)

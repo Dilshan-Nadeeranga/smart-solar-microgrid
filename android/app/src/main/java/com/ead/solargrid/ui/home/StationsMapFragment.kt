@@ -2,6 +2,11 @@ package com.ead.solargrid.ui.home
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
 import android.os.Bundle
 import android.view.MotionEvent
 import android.text.Editable
@@ -20,11 +25,13 @@ import com.ead.solargrid.R
 import com.ead.solargrid.api.ApiClient
 import com.ead.solargrid.databinding.FragmentProsumerMapBinding
 import com.ead.solargrid.models.SolarStation
+import com.ead.solargrid.models.StationSchedule
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -56,6 +63,14 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
     private var applyingSuggestion = false
     private var sheetShown = false
     private var nearbyOrder: List<SolarStation> = emptyList()
+    private var scheduleExpanded = false
+    private var collapsedOffset = 0
+    private var scheduleLoadedFor: String? = null
+    private var entranceRunning = false
+    private var sheetSettling = false
+    private var verticalDrag = false
+    private var dragAnchorY = 0f
+    private var stationIcon: BitmapDescriptor? = null
     private val markers = mutableListOf<Pair<Marker, SolarStation>>()
 
     private val locationPermission = registerForActivityResult(
@@ -87,9 +102,7 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
         }
         binding.btnUseLocation.setOnClickListener { requestLocation() }
         binding.btnMyLocation.setOnClickListener { requestLocation() }
-        binding.btnViewStation.setOnClickListener { focusSelected() }
-        enableSheetDrag()
-        enableSheetSwipe()
+        enableSheetGestures()
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
@@ -132,7 +145,14 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
     override fun onDestroyView() {
         markers.clear()
         googleMap = null
+        stationIcon = null
         sheetShown = false
+        scheduleExpanded = false
+        collapsedOffset = 0
+        scheduleLoadedFor = null
+        entranceRunning = false
+        sheetSettling = false
+        verticalDrag = false
         _binding = null
         super.onDestroyView()
     }
@@ -225,7 +245,8 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
                 MarkerOptions()
                     .position(LatLng(station.latitude, station.longitude))
                     .title(station.name)
-                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW))
+                    .anchor(0.5f, 0.5f)
+                    .icon(stationMarkerIcon())
             ) ?: return@forEach
             marker.tag = station
             markers += marker to station
@@ -238,6 +259,23 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
             showStation(focus)
         }
         moveCamera(stations)
+    }
+
+    private fun stationMarkerIcon(): BitmapDescriptor {
+        stationIcon?.let { return it }
+        val size = (44 * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = 0xFFFACC15.toInt() }
+        val radius = size / 2f
+        canvas.drawCircle(radius, radius, radius, paint)
+        val thunder = BitmapFactory.decodeResource(resources, R.drawable.thunder)
+        if (thunder != null) {
+            val inset = (size * 0.22f).toInt()
+            canvas.drawBitmap(thunder, null, Rect(inset, inset, size - inset, size - inset), null)
+            thunder.recycle()
+        }
+        return BitmapDescriptorFactory.fromBitmap(bitmap).also { stationIcon = it }
     }
 
     private fun moveCamera(stations: List<SolarStation>) {
@@ -269,6 +307,7 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
     }
 
     private fun showStation(station: SolarStation) {
+        val selectedChanged = selected?.id != station.id
         selected = station
         binding.tvStationName.text = station.name
         binding.tvArea.text = station.address?.takeIf { it.isNotBlank() } ?: getString(R.string.map_station_area)
@@ -281,119 +320,344 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
         } else {
             getString(R.string.map_distance_km, distanceKm(here, LatLng(station.latitude, station.longitude)))
         }
-        pullUpSheet()
+        if (selectedChanged) resetSchedule()
+        loadSchedule(station)
+        if (sheetShown) syncPeek() else pullUpSheet()
     }
 
     private fun pullUpSheet() {
         if (sheetShown || _binding == null) return
         sheetShown = true
         val sheet = binding.stationSheet
+        if (binding.scheduleRows.childCount == 0) {
+            binding.scheduleRows.addView(scheduleLine(getString(R.string.map_schedule_empty), bold = false))
+        }
+        binding.schedulePanel.visibility = View.VISIBLE
+        binding.tvSlideHours.alpha = 1f
         sheet.post {
             if (_binding == null) return@post
+            val peek = (binding.schedulePanel.height + topMargin(binding.schedulePanel)).coerceAtLeast(0)
+            collapsedOffset = peek
+            sheet.translationX = 0f
             sheet.translationY = sheet.height.toFloat()
             sheet.visibility = View.VISIBLE
+            entranceRunning = true
             sheet.animate()
-                .translationY(0f)
-                .setDuration(450)
+                .translationY(peek.toFloat())
+                .setDuration(420)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .withEndAction {
+                    entranceRunning = false
+                    if (_binding == null || verticalDrag || scheduleExpanded) return@withEndAction
+                    val extra = binding.schedulePanel.height + topMargin(binding.schedulePanel)
+                    if (extra > 0) {
+                        collapsedOffset = extra
+                        sheet.translationY = extra.toFloat()
+                    }
+                    updateHoursHint()
+                }
+                .start()
+        }
+    }
+
+    private fun resetSchedule() {
+        scheduleExpanded = false
+        scheduleLoadedFor = null
+        collapsedOffset = 0
+        if (_binding == null) return
+        binding.tvSlideHours.alpha = 1f
+        binding.scheduleRows.removeAllViews()
+        binding.schedulePanel.visibility = View.GONE
+        binding.stationSheet.translationY = 0f
+    }
+
+    private fun loadSchedule(station: SolarStation) {
+        if (scheduleLoadedFor == station.id) return
+        val stationId = station.id
+        binding.scheduleRows.removeAllViews()
+        binding.scheduleRows.addView(scheduleLine(getString(R.string.map_schedule_empty), bold = false))
+        viewLifecycleOwner.lifecycleScope.launch {
+            val rows = try {
+                ApiClient.getApiService(requireContext()).getStationSchedules(stationId).body().orEmpty()
+            } catch (_: Exception) {
+                emptyList()
+            }
+            if (_binding == null || selected?.id != stationId) return@launch
+            renderSchedule(rows)
+            scheduleLoadedFor = stationId
+            syncPeek()
+        }
+    }
+
+    private fun syncPeek() {
+        val panel = binding.schedulePanel
+        val sheet = binding.stationSheet
+        if (_binding == null || entranceRunning || sheetSettling || verticalDrag || scheduleExpanded || !sheetShown) return
+        panel.visibility = View.VISIBLE
+        val listener = object : View.OnLayoutChangeListener {
+            override fun onLayoutChange(
+                v: View,
+                left: Int,
+                top: Int,
+                right: Int,
+                bottom: Int,
+                oldLeft: Int,
+                oldTop: Int,
+                oldRight: Int,
+                oldBottom: Int
+            ) {
+                v.removeOnLayoutChangeListener(this)
+                parkSchedule()
+            }
+        }
+        sheet.addOnLayoutChangeListener(listener)
+        sheet.requestLayout()
+        sheet.post { sheet.removeOnLayoutChangeListener(listener) }
+        if (panel.height > 0) parkSchedule()
+    }
+
+    private fun parkSchedule() {
+        if (_binding == null || entranceRunning || sheetSettling || verticalDrag || scheduleExpanded || !sheetShown) return
+        val panel = binding.schedulePanel
+        val extra = panel.height + topMargin(panel)
+        if (extra <= 0) return
+        collapsedOffset = extra
+        binding.stationSheet.translationY = extra.toFloat()
+        updateHoursHint()
+    }
+
+    private fun renderSchedule(schedules: List<StationSchedule>) {
+        val rows = binding.scheduleRows
+        rows.removeAllViews()
+        if (schedules.isEmpty()) {
+            rows.addView(scheduleLine(getString(R.string.map_schedule_empty), bold = false))
+            return
+        }
+        val order = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
+        val sorted = schedules.sortedBy { schedule ->
+            val index = order.indexOfFirst { it.equals(schedule.day, ignoreCase = true) }
+            if (index < 0) order.size else index
+        }
+        sorted.forEach { schedule ->
+            val hours = if (schedule.isAvailable) {
+                getString(R.string.map_schedule_hours, clock(schedule.openingTime), clock(schedule.closingTime))
+            } else {
+                getString(R.string.map_closed)
+            }
+            val line = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(0, (6 * resources.displayMetrics.density).toInt(), 0, (6 * resources.displayMetrics.density).toInt())
+            }
+            line.addView(TextView(requireContext()).apply {
+                text = schedule.day
+                setTextColor(0xFF0B1C30.toInt())
+                textSize = 13f
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            })
+            line.addView(TextView(requireContext()).apply {
+                text = hours
+                setTextColor(if (schedule.isAvailable) 0xFF0B1C30.toInt() else 0xFF555E74.toInt())
+                textSize = 13f
+            })
+            rows.addView(line)
+        }
+    }
+
+    private fun scheduleLine(text: String, bold: Boolean): TextView {
+        return TextView(requireContext()).apply {
+            this.text = text
+            setTextColor(0xFF555E74.toInt())
+            textSize = 13f
+            if (bold) setTypeface(typeface, android.graphics.Typeface.BOLD)
+        }
+    }
+
+    private fun clock(value: String): String {
+        return if (value.length >= 5) value.take(5) else value
+    }
+
+    private fun enableSheetGestures() {
+        val sheet = binding.stationSheet
+        val slop = android.view.ViewConfiguration.get(sheet.context).scaledTouchSlop
+        val velocity = android.view.VelocityTracker.obtain()
+        var downX = 0f
+        var downY = 0f
+        var mode = 0
+        sheet.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    velocity.clear()
+                    velocity.addMovement(event)
+                    downX = event.rawX
+                    downY = event.rawY
+                    mode = 0
+                    verticalDrag = false
+                    sheet.animate().cancel()
+                    entranceRunning = false
+                    sheetSettling = false
+                    dragAnchorY = sheet.translationY
+                    sheet.parent?.requestDisallowInterceptTouchEvent(true)
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    velocity.addMovement(event)
+                    val dx = event.rawX - downX
+                    val dy = event.rawY - downY
+                    if (mode == 0) {
+                        if (kotlin.math.abs(dx) < slop && kotlin.math.abs(dy) < slop) {
+                            return@setOnTouchListener false
+                        }
+                        mode = if (kotlin.math.abs(dy) >= kotlin.math.abs(dx)) 1 else 2
+                        if (mode == 1) verticalDrag = true
+                        sheet.parent?.requestDisallowInterceptTouchEvent(true)
+                    }
+                    if (mode == 1) {
+                        val maxY = sheet.height.toFloat().coerceAtLeast(0f)
+                        sheet.translationY = (dragAnchorY + dy).coerceIn(0f, maxY)
+                        updateHoursHint()
+                        true
+                    } else {
+                        sheet.translationX = dx
+                        true
+                    }
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                    velocity.addMovement(event)
+                    val was = mode
+                    mode = 0
+                    verticalDrag = false
+                    when (was) {
+                        1 -> {
+                            velocity.computeCurrentVelocity(1000)
+                            val speed = if (event.actionMasked == MotionEvent.ACTION_CANCEL) 0f else velocity.yVelocity
+                            settleVertical(speed, event.rawY - downY)
+                            true
+                        }
+                        2 -> {
+                            settleHorizontal()
+                            true
+                        }
+                        else -> {
+                            if (sheetShown && sheet.visibility == View.VISIBLE) {
+                                val target = if (scheduleExpanded) 0f else collapsedOffset.toFloat()
+                                if (kotlin.math.abs(sheet.translationY - target) > 1.5f) {
+                                    animateSheetY(target, scheduleExpanded)
+                                }
+                            }
+                            false
+                        }
+                    }
+                }
+                else -> false
+            }
+        }
+    }
+
+    private fun settleVertical(velocityY: Float, dragDy: Float) {
+        val sheet = binding.stationSheet
+        val y = sheet.translationY
+        val peek = collapsedOffset.toFloat().coerceAtLeast(0f)
+        val hideAt = peek + (sheet.height - peek).coerceAtLeast(0f) * 0.22f
+        when {
+            y > hideAt || (velocityY >= 1400f && dragDy > 0f && y > peek + 12f) -> hideSheet()
+            dragDy < 0f || velocityY <= -600f -> animateSheetY(0f, expanded = true)
+            else -> animateSheetY(peek, expanded = false)
+        }
+    }
+
+    private fun settleHorizontal() {
+        val sheet = binding.stationSheet
+        val index = nearbyOrder.indexOfFirst { it.id == selected?.id }.coerceAtLeast(0)
+        val step = when {
+            nearbyOrder.size <= 1 -> 0
+            sheet.translationX < -sheet.width * 0.22f && index < nearbyOrder.lastIndex -> 1
+            sheet.translationX > sheet.width * 0.22f && index > 0 -> -1
+            else -> 0
+        }
+        if (step != 0) {
+            val exitX = if (step > 0) -sheet.width.toFloat() else sheet.width.toFloat()
+            val enterX = -exitX * 0.35f
+            sheet.animate()
+                .translationX(exitX)
+                .setDuration(180)
+                .setInterpolator(android.view.animation.DecelerateInterpolator())
+                .withEndAction {
+                    if (_binding == null) return@withEndAction
+                    showNearby(step)
+                    sheet.translationX = enterX
+                    sheet.animate()
+                        .translationX(0f)
+                        .setDuration(200)
+                        .setInterpolator(android.view.animation.DecelerateInterpolator())
+                        .start()
+                }
+                .start()
+        } else {
+            sheet.animate()
+                .translationX(0f)
+                .setDuration(180)
                 .setInterpolator(android.view.animation.DecelerateInterpolator())
                 .start()
         }
     }
 
-    private fun enableSheetDrag() {
+    private fun animateSheetY(target: Float, expanded: Boolean) {
         val sheet = binding.stationSheet
-        var downY = 0f
-        binding.sheetHandle.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downY = event.rawY
-                    sheet.animate().cancel()
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dragged = (event.rawY - downY).coerceAtLeast(0f)
-                    sheet.translationY = dragged.coerceAtMost(sheet.height.toFloat())
-                    true
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val hide = sheet.translationY > sheet.height * 0.28f
-                    sheet.animate()
-                        .translationY(if (hide) sheet.height.toFloat() else 0f)
-                        .setDuration(220)
-                        .setInterpolator(android.view.animation.DecelerateInterpolator())
-                        .withEndAction {
-                            if (hide && _binding != null) {
-                                sheet.visibility = View.INVISIBLE
-                                sheet.translationY = 0f
-                                sheetShown = false
-                            }
-                        }
-                        .start()
-                    true
-                }
-                else -> false
+        sheet.animate().cancel()
+        scheduleExpanded = expanded
+        sheetSettling = true
+        sheet.animate()
+            .translationY(target)
+            .setDuration(360)
+            .setInterpolator(android.view.animation.DecelerateInterpolator(1.4f))
+            .setUpdateListener { updateHoursHint() }
+            .withEndAction {
+                if (_binding == null) return@withEndAction
+                sheetSettling = false
+                scheduleExpanded = expanded
+                sheet.translationY = target
+                updateHoursHint()
             }
+            .start()
+    }
+
+    private fun hideSheet() {
+        val sheet = binding.stationSheet
+        sheet.animate().cancel()
+        scheduleExpanded = false
+        sheetSettling = true
+        sheet.animate()
+            .translationY(sheet.height.toFloat())
+            .setDuration(300)
+            .setInterpolator(android.view.animation.DecelerateInterpolator())
+            .withEndAction {
+                sheetSettling = false
+                if (_binding == null) return@withEndAction
+                sheet.visibility = View.INVISIBLE
+                sheet.translationY = 0f
+                sheet.translationX = 0f
+                sheetShown = false
+                scheduleExpanded = false
+                collapsedOffset = 0
+                binding.schedulePanel.visibility = View.GONE
+                binding.tvSlideHours.alpha = 1f
+            }
+            .start()
+    }
+
+    private fun updateHoursHint() {
+        if (_binding == null) return
+        val peek = collapsedOffset.toFloat()
+        binding.tvSlideHours.alpha = if (peek <= 1f) {
+            if (scheduleExpanded) 0f else 1f
+        } else {
+            (binding.stationSheet.translationY / peek).coerceIn(0f, 1f)
         }
     }
 
-    private fun enableSheetSwipe() {
-        val sheet = binding.stationSheet
-        val slop = android.view.ViewConfiguration.get(sheet.context).scaledTouchSlop
-        var downX = 0f
-        var downY = 0f
-        var swiping = false
-        sheet.setOnTouchListener { _, event ->
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.rawX
-                    downY = event.rawY
-                    swiping = false
-                    false
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val dx = event.rawX - downX
-                    val dy = event.rawY - downY
-                    if (!swiping && kotlin.math.abs(dx) > slop && kotlin.math.abs(dx) > kotlin.math.abs(dy)) {
-                        swiping = true
-                        sheet.animate().cancel()
-                    }
-                    if (swiping) {
-                        sheet.translationX = dx
-                        true
-                    } else {
-                        false
-                    }
-                }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    if (!swiping) return@setOnTouchListener false
-                    val index = nearbyOrder.indexOfFirst { it.id == selected?.id }.coerceAtLeast(0)
-                    val step = when {
-                        nearbyOrder.size <= 1 -> 0
-                        sheet.translationX < -sheet.width * 0.22f && index < nearbyOrder.lastIndex -> 1
-                        sheet.translationX > sheet.width * 0.22f && index > 0 -> -1
-                        else -> 0
-                    }
-                    if (step != 0) {
-                        val exitX = if (step > 0) -sheet.width.toFloat() else sheet.width.toFloat()
-                        val enterX = -exitX * 0.35f
-                        sheet.animate()
-                            .translationX(exitX)
-                            .setDuration(160)
-                            .withEndAction {
-                                if (_binding == null) return@withEndAction
-                                showNearby(step)
-                                sheet.translationX = enterX
-                                sheet.animate().translationX(0f).setDuration(180).start()
-                            }
-                            .start()
-                    } else {
-                        sheet.animate().translationX(0f).setDuration(160).start()
-                    }
-                    true
-                }
-                else -> false
-            }
-        }
+    private fun topMargin(view: View): Int {
+        val params = view.layoutParams as? ViewGroup.MarginLayoutParams ?: return 0
+        return params.topMargin
     }
 
     private fun showNearby(step: Int) {
@@ -484,13 +748,6 @@ class StationsMapFragment : Fragment(), OnMapReadyCallback {
                 station.name.lowercase().contains(text) ||
                 station.address.orEmpty().lowercase().contains(text)
         }
-    }
-
-    private fun focusSelected() {
-        val station = selected ?: return
-        googleMap?.animateCamera(
-            CameraUpdateFactory.newLatLngZoom(LatLng(station.latitude, station.longitude), 15f)
-        )
     }
 
     private fun distanceKm(from: LatLng, to: LatLng): Double {
