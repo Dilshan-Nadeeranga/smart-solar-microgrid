@@ -34,6 +34,7 @@
 
     <string name="dashboard_greeting">Hi %1$s</string>
     <string name="dashboard_greeting_wave">Hi, %1$s 👋</string>
+    <string name="dashboard_subtitle">Your solar bookings at a glance</string>
     <string name="dashboard_pending_reservations">Pending reservations</string>
     <string name="dashboard_approved_upcoming">Approved (upcoming)</string>
     <string name="dashboard_nearby_slots">Active station slots nearby</string>
@@ -69,10 +70,20 @@
     <string name="register_login">Login</string>
     <string name="register_toggle_password">Show or hide password</string>
     <string name="bookings_title">Bookings</string>
-    <string name="bookings_subtitle">Pending approvals &amp; reservations</string>
+    <string name="bookings_subtitle">Pending and approved reservations</string>
     <string name="bookings_filter">Filter</string>
-    <string name="bookings_pending_heading">Pending bookings</string>
+    <string name="bookings_filter_title">Filter bookings</string>
+    <string name="bookings_filter_hint">Choose which bookings to show</string>
+    <string name="bookings_filter_apply">Apply</string>
+    <string name="booking_dialog_close">Close</string>
+    <string name="bookings_filter_both">Pending and approved</string>
+    <string name="bookings_filter_pending">Pending</string>
+    <string name="bookings_filter_approved">Approved</string>
+    <string name="bookings_pending_heading">Your bookings</string>
     <string name="bookings_pending_empty">No pending bookings. Create one when you are ready.</string>
+    <string name="bookings_approved_empty">No approved bookings.</string>
+    <string name="bookings_active_empty">No pending or approved bookings.</string>
+    <string name="booking_status_approved">Approved</string>
     <string name="booking_create_button">+ Create booking</string>
 
     <string name="booking_search_stations">Search by station name or location…</string>
@@ -139,10 +150,35 @@
 
     <string name="history_title">Booking history</string>
     <string name="history_subtitle">Completed, cancelled, and rejected bookings</string>
+    <string name="history_heading">Past bookings</string>
     <string name="history_empty">No past bookings yet.</string>
+    <string name="history_empty_filtered">No bookings for this filter.</string>
+    <string name="history_filter_title">Filter history</string>
+    <string name="history_filter_hint">Choose which past bookings to show</string>
+    <string name="history_filter_all">All</string>
+    <string name="history_filter_completed">Completed</string>
+    <string name="history_filter_cancelled">Cancelled</string>
+    <string name="history_filter_rejected">Rejected</string>
+    <string name="booking_status_completed">Completed</string>
+    <string name="booking_status_cancelled">Cancelled</string>
+    <string name="booking_status_rejected">Rejected</string>
 
     <string name="coming_soon">Coming soon</string>
     <string name="logout">Logout</string>
+    <string name="logout_confirm_title">Log out?</string>
+    <string name="logout_confirm_body">You will need to sign in again to use Solarix.</string>
+    <string name="logout_confirm_stay">Stay signed in</string>
+    <string name="profile_subtitle">Your account details</string>
+    <string name="profile_nic">NIC</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_phone">Phone</string>
+    <string name="profile_address">Address</string>
+    <string name="profile_role">Role</string>
+    <string name="profile_status">Account status</string>
+    <string name="profile_nic_status">NIC verification</string>
+    <string name="profile_email_verified">Email verified</string>
+    <string name="profile_yes">Yes</string>
+    <string name="profile_no">No</string>
 
     <!-- Grid Operator home -->
     <string name="operator_role_label">Grid Operator</string>

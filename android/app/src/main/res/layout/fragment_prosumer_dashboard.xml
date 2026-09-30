@@ -3,10 +3,11 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/solarix_surface"
     android:clipToPadding="false"
     android:fillViewport="true"
-    android:paddingHorizontal="20dp"
-    android:paddingTop="24dp"
+    android:paddingHorizontal="18dp"
+    android:paddingTop="20dp"
     android:paddingBottom="16dp">
 
     <LinearLayout
@@ -14,84 +15,78 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
+        <TextView
+            android:id="@+id/tvGreeting"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/slate_900"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/dashboard_subtitle"
+            android:textColor="@color/slate_500"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center_vertical"
+            android:layout_marginTop="16dp"
             android:orientation="horizontal">
-
-            <TextView
-                android:id="@+id/tvGreeting"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:textColor="@color/dashboard_text"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
-            <ImageButton
-                android:id="@+id/btnNotifications"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="@drawable/bg_solar_icon_circle"
-                android:contentDescription="@string/nav_notifications"
-                android:padding="10dp"
-                android:src="@drawable/ic_dashboard_notifications"
-                app:tint="@color/solar_yellow_dark" />
-        </LinearLayout>
-
-        <GridLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:columnCount="2">
 
             <include
                 android:id="@+id/cardPending"
                 layout="@layout/item_dashboard_summary_card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1" />
+                android:layout_marginEnd="6dp"
+                android:layout_weight="1" />
 
             <include
                 android:id="@+id/cardApproved"
                 layout="@layout/item_dashboard_summary_card"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_columnWeight="1" />
+                android:layout_marginStart="6dp"
+                android:layout_weight="1" />
+        </LinearLayout>
 
-            <include
-                android:id="@+id/cardNearby"
-                layout="@layout/item_dashboard_summary_card"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_columnSpan="2"
-                android:layout_columnWeight="1" />
-        </GridLayout>
+        <include
+            android:id="@+id/cardNearby"
+            layout="@layout/item_dashboard_summary_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnReserveSlot"
             android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:layout_marginTop="20dp"
+            android:layout_height="52dp"
+            android:layout_marginTop="16dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="@string/dashboard_reserve_slot"
             android:textAllCaps="false"
-            android:textColor="@color/dashboard_text"
-            android:textSize="16sp"
+            android:textColor="@color/slate_900"
+            android:textSize="15sp"
             android:textStyle="bold"
-            app:backgroundTint="@color/solar_yellow"
-            app:cornerRadius="14dp"
+            app:backgroundTint="@color/solarix_header"
+            app:cornerRadius="999dp"
             app:icon="@drawable/ic_nav_bookings"
             app:iconGravity="textStart"
-            app:iconTint="@color/dashboard_text" />
+            app:iconTint="@color/slate_900" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="28dp"
+            android:layout_marginTop="22dp"
             android:text="@string/dashboard_upcoming_title"
-            android:textColor="@color/dashboard_text"
-            android:textSize="18sp"
+            android:textColor="@color/slate_900"
+            android:textSize="16sp"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -106,21 +101,26 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:gravity="center"
             android:text="@string/dashboard_upcoming_empty"
-            android:textColor="@color/dashboard_muted"
+            android:textColor="@color/slate_500"
             android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnNearbyStations"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="@string/dashboard_view_nearby"
             android:textAllCaps="false"
-            android:textColor="@color/solar_yellow_dark"
-            app:cornerRadius="14dp"
-            app:strokeColor="@color/solar_yellow"
+            android:textColor="@color/slate_900"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            app:cornerRadius="999dp"
+            app:strokeColor="@color/booking_search_stroke"
             app:strokeWidth="1dp" />
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>
