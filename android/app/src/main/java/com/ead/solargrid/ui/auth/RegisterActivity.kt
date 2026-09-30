@@ -5,8 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.text.method.HideReturnsTransformationMethod
+import android.text.method.PasswordTransformationMethod
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +27,19 @@ import java.io.FileOutputStream
 import java.util.regex.Pattern
 
 class RegisterActivity : AppCompatActivity() {
+
+    private fun wirePasswordToggle(field: EditText, button: ImageButton) {
+        button.setOnClickListener {
+            val hidden = field.transformationMethod is PasswordTransformationMethod
+            field.transformationMethod = if (hidden) {
+                HideReturnsTransformationMethod.getInstance()
+            } else {
+                PasswordTransformationMethod.getInstance()
+            }
+            button.setImageResource(if (hidden) R.drawable.ic_visibility_off else R.drawable.ic_visibility)
+            field.setSelection(field.text?.length ?: 0)
+        }
+    }
 
     private val PICK_FILE_REQUEST = 1
     private var selectedFileUri: Uri? = null
@@ -47,6 +63,10 @@ class RegisterActivity : AppCompatActivity() {
         val btnSelectDoc = findViewById<Button>(R.id.btnSelectDoc)
         tvDocName = findViewById(R.id.tvDocName)
         val btnRegister = findViewById<Button>(R.id.btnRegister)
+
+        findViewById<TextView>(R.id.tvGoLogin).setOnClickListener { finish() }
+        wirePasswordToggle(etPassword, findViewById(R.id.btnTogglePassword))
+        wirePasswordToggle(etConfirmPassword, findViewById(R.id.btnToggleConfirmPassword))
 
         btnSelectDoc.setOnClickListener {
             val intent = Intent(Intent.ACTION_GET_CONTENT)
