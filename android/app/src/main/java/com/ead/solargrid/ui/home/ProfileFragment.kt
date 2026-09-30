@@ -91,6 +91,16 @@ class ProfileFragment : Fragment() {
         binding.tvProfileAddress.text = user.address?.ifBlank { "—" } ?: "—"
         binding.tvProfileStatus.text = pretty(user.accountStatus)
         binding.tvProfileNicStatus.text = pretty(user.nicVerificationStatus)
+        
+        val session = SessionManager(requireContext())
+        
+        binding.btnEditProfile.setOnClickListener {
+            showEditProfileDialog(user, session)
+        }
+
+        binding.btnDeactivate.setOnClickListener {
+            requestDeactivation(user.nic)
+        }
     }
 
     private fun pretty(value: String?): String {
@@ -102,6 +112,89 @@ class ProfileFragment : Fragment() {
             .joinToString(" ") { word ->
                 word.replaceFirstChar { it.titlecase(Locale.getDefault()) }
             }
+    }
+
+    private fun showEditProfileDialog(user: com.ead.solargrid.models.User?, session: SessionManager) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(com.ead.solargrid.R.layout.dialog_edit_profile, null)
+        val etName = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.ead.solargrid.R.id.etEditName)
+        val etEmail = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.ead.solargrid.R.id.etEditEmail)
+        val etPhone = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.ead.solargrid.R.id.etEditPhone)
+        val etAddress = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(com.ead.solargrid.R.id.etEditAddress)
+
+        etName.setText(user?.name)
+        etEmail.setText(user?.email)
+        etPhone.setText(user?.phone)
+        etAddress.setText(user?.address)
+
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val request = com.ead.solargrid.models.UpdateProfileRequest(
+                    name = etName.text.toString().trim(),
+                    email = etEmail.text.toString().trim(),
+                    phone = etPhone.text.toString().trim(),
+                    address = etAddress.text.toString().trim()
+                )
+                updateProfile(user?.nic, request, session)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    private fun updateProfile(nic: String?, request: com.ead.solargrid.models.UpdateProfileRequest, session: SessionManager) {
+        if (nic == null) return
+        androidx.lifecycle.lifecycleScope.launchWhenStarted {
+            try {
+                val response = com.ead.solargrid.api.RetrofitClient.apiService.updateProfile(nic, request)
+                if (response.isSuccessful) {
+                    val updatedUser = response.body()
+                    if (updatedUser != null) {
+                        // Keep our User model updated with what the server returns
+                        val newModelUser = User(
+                            nic = updatedUser.nic,
+                            name = updatedUser.name,
+                            email = updatedUser.email,
+                            phone = updatedUser.phone,
+                            address = updatedUser.address,
+                            role = updatedUser.role,
+                            accountStatus = updatedUser.accountStatus,
+                            nicVerificationStatus = "VERIFIED"
+                        )
+                        session.saveUserSession(newModelUser)
+                        showUser(newModelUser)
+                        android.widget.Toast.makeText(requireContext(), "Profile Updated", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    android.widget.Toast.makeText(requireContext(), "Update Failed", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                android.widget.Toast.makeText(requireContext(), "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun requestDeactivation(nic: String?) {
+        if (nic == null) return
+        androidx.appcompat.app.AlertDialog.Builder(requireContext())
+            .setTitle("Request Deactivation")
+            .setMessage("Are you sure you want to deactivate your account? This action requires backoffice approval.")
+            .setPositiveButton("Yes") { _, _ ->
+                androidx.lifecycle.lifecycleScope.launchWhenStarted {
+                    try {
+                        val response = com.ead.solargrid.api.RetrofitClient.apiService.requestDeactivation(nic)
+                        if (response.isSuccessful) {
+                            android.widget.Toast.makeText(requireContext(), "Deactivation Requested", android.widget.Toast.LENGTH_SHORT).show()
+                            binding.tvProfileStatus.text = pretty("DEACTIVATION_REQUESTED")
+                        } else {
+                            android.widget.Toast.makeText(requireContext(), "Request Failed", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        android.widget.Toast.makeText(requireContext(), "Error: ${e.message}", android.widget.Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("No", null)
+            .show()
     }
 
     override fun onDestroyView() {

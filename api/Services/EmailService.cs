@@ -44,4 +44,33 @@ public class EmailService : IEmailService
             throw new InvalidOperationException("Failed to send email. Please check SMTP configuration.");
         }
     }
+
+    public async Task SendEmailAsync(string toEmail, string subject, string body)
+    {
+        try
+        {
+            var message = new MailMessage
+            {
+                From = new MailAddress(_settings.FromEmail, _settings.FromName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = false
+            };
+
+            message.To.Add(new MailAddress(toEmail));
+
+            using var client = new SmtpClient(_settings.SmtpHost, _settings.SmtpPort)
+            {
+                Credentials = new NetworkCredential(_settings.SmtpUsername, _settings.SmtpPassword),
+                EnableSsl = true
+            };
+
+            await client.SendMailAsync(message);
+            _logger.LogInformation($"Email '{subject}' sent successfully to {toEmail}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send email to {Email}", toEmail);
+        }
+    }
 }
