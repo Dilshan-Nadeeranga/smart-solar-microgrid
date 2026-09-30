@@ -1,11 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/activityRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/solarix_surface"
-    android:orientation="vertical">
+    android:clipChildren="false">
+
+    <FrameLayout
+        android:id="@+id/loginSun"
+        android:layout_width="520dp"
+        android:layout_height="520dp"
+        android:layout_gravity="top|center_horizontal"
+        android:layout_marginTop="-330dp"
+        android:clipChildren="false">
+
+        <View
+            android:id="@+id/loginWave"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_login_wave" />
+
+        <FrameLayout
+            android:id="@+id/loginRays"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipChildren="false" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
     <View
         android:id="@+id/statusBarScrim"
@@ -98,27 +124,42 @@
                         app:strokeColor="@color/booking_search_stroke"
                         app:strokeWidth="1dp">
 
-                        <com.google.android.material.textfield.TextInputLayout
+                        <FrameLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            app:boxBackgroundMode="none"
-                            app:endIconMode="password_toggle"
-                            app:endIconTint="@color/slate_500"
-                            app:hintEnabled="false">
+                            android:layout_height="52dp">
 
                             <com.google.android.material.textfield.TextInputEditText
                                 android:id="@+id/etPassword"
                                 android:layout_width="match_parent"
-                                android:layout_height="52dp"
+                                android:layout_height="match_parent"
                                 android:background="@android:color/transparent"
+                                android:gravity="center_vertical"
                                 android:hint="@string/login_password"
+                                android:includeFontPadding="false"
                                 android:inputType="textPassword"
                                 android:maxLines="1"
-                                android:paddingHorizontal="18dp"
+                                android:minHeight="0dp"
+                                android:paddingStart="18dp"
+                                android:paddingEnd="48dp"
+                                android:paddingVertical="0dp"
                                 android:textColor="@color/slate_900"
                                 android:textColorHint="@color/slate_500"
                                 android:textSize="15sp" />
-                        </com.google.android.material.textfield.TextInputLayout>
+
+                            <ImageButton
+                                android:id="@+id/btnTogglePassword"
+                                android:layout_width="28dp"
+                                android:layout_height="28dp"
+                                android:layout_gravity="end|center_vertical"
+                                android:layout_marginEnd="14dp"
+                                android:background="@android:color/transparent"
+                                android:contentDescription="@string/register_toggle_password"
+                                android:minWidth="0dp"
+                                android:minHeight="0dp"
+                                android:padding="4dp"
+                                android:scaleType="fitCenter"
+                                android:src="@drawable/ic_visibility" />
+                        </FrameLayout>
                     </com.google.android.material.card.MaterialCardView>
 
                     <com.google.android.material.button.MaterialButton
@@ -164,4 +205,5 @@
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>
