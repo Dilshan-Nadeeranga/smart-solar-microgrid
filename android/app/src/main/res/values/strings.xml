@@ -23,6 +23,10 @@
     <string name="map_slots_label">Battery slots</string>
     <string name="map_slots_value">6 of 10 free</string>
     <string name="map_view_station">View station</string>
+    <string name="map_slide_hours">Slide up for weekly hours</string>
+    <string name="map_weekly_schedule">Weekly schedule</string>
+    <string name="map_schedule_hours">%1$s – %2$s</string>
+    <string name="map_schedule_empty">No weekly hours set.</string>
     <string name="map_slots_count">%1$d slots</string>
     <string name="map_distance_km">%1$.1f km away</string>
     <string name="map_distance_unknown">Distance unavailable</string>

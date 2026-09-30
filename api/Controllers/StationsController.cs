@@ -111,7 +111,8 @@ public class StationsController : ControllerBase
     [HttpGet("{id}/slots")]
     public async Task<IActionResult> GetAvailableSlots(
         string id,
-        [FromQuery] DateTime dateUtc)
+        [FromQuery] DateTime dateUtc,
+        [FromQuery] bool includeFull = false)
     {
         var station = await _service.GetByIdAsync(id);
 
@@ -123,7 +124,7 @@ public class StationsController : ControllerBase
             });
         }
 
-        var slots = await _service.GetAvailableSlotsAsync(id, dateUtc);
+        var slots = await _service.GetAvailableSlotsAsync(id, dateUtc, includeFull);
         return Ok(slots);
     }
 
