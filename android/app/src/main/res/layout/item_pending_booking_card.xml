@@ -6,8 +6,8 @@
     android:layout_marginBottom="12dp"
     app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="16dp"
-    app:cardElevation="2dp"
-    app:strokeColor="#E2E8F0"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/booking_search_stroke"
     app:strokeWidth="1dp">
 
     <LinearLayout
@@ -91,10 +91,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:background="@drawable/bg_booking_card_meta"
             android:baselineAligned="false"
-            android:orientation="horizontal"
-            android:padding="10dp">
+            android:orientation="horizontal">
 
             <LinearLayout
                 android:layout_width="0dp"
