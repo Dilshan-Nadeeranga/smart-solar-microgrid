@@ -10,17 +10,8 @@ interface ApiService {
     @POST("api/auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
 
-    @Multipart
     @POST("api/auth/register/start")
-    suspend fun registerStart(
-        @Part("nic") nic: RequestBody,
-        @Part("name") name: RequestBody,
-        @Part("email") email: RequestBody,
-        @Part("password") password: RequestBody,
-        @Part("phone") phone: RequestBody?,
-        @Part("address") address: RequestBody?,
-        @Part nicDocument: MultipartBody.Part
-    ): Response<RegisterStartResponse>
+    suspend fun registerStart(@Body request: RegisterStartRequest): Response<RegisterStartResponse>
 
     @POST("api/auth/register/verify-otp")
     suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<User>

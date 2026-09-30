@@ -26,7 +26,13 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
-        buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
+        val cloudName = localProperties.getProperty("CLOUDINARY_CLOUD_NAME")?.trim().orEmpty()
+        val apiKey = localProperties.getProperty("CLOUDINARY_API_KEY")?.trim().orEmpty()
+        val apiSecret = localProperties.getProperty("CLOUDINARY_API_SECRET")?.trim().orEmpty()
+        
+        buildConfigField("String", "CLOUDINARY_CLOUD_NAME", "\"$cloudName\"")
+        buildConfigField("String", "CLOUDINARY_API_KEY", "\"$apiKey\"")
+        buildConfigField("String", "CLOUDINARY_API_SECRET", "\"$apiSecret\"")
     }
 
     buildTypes {
@@ -78,6 +84,13 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:1.4.1")
     implementation("androidx.camera:camera-view:1.4.1")
     implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    
+    // Cloudinary
+    implementation("com.cloudinary:cloudinary-android:2.5.0")
+    
+    // Fix Guava conflicts from Cloudinary
+    implementation("com.google.guava:guava:31.1-android")
+    implementation("androidx.concurrent:concurrent-futures:1.1.0")
 
     testImplementation(libs.junit)
     testImplementation("com.squareup.okhttp3:mockwebserver:4.11.0")
