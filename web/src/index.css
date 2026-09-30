@@ -4,11 +4,11 @@
   --color-surface: #f8f9ff;
   --color-on-surface: #0b1c30;
   --color-on-surface-variant: #4d4632;
-  --color-primary: #735c00;
-  --color-on-primary: #ffffff;
-  --color-primary-container: #facc15;
-  --color-on-primary-container: #6c5700;
-  --color-primary-fixed-dim: #eec200;
+  --color-primary: #f2a900;
+  --color-on-primary: #000000;
+  --color-primary-container: #ffdf60;
+  --color-on-primary-container: #3d2b00;
+  --color-primary-fixed-dim: #f2a900;
   --color-secondary: #555e74;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #eff4ff;

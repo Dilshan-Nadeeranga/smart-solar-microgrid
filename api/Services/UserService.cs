@@ -391,6 +391,24 @@ public class UserService
     return (true, "User reactivated successfully.");
 }
 
+public async Task<(bool Success, string Message)> RejectRegistrationAsync(string nic, string reason)
+{
+    var pending = await _pendingRegistrationRepository.GetByNicOrEmailAsync(nic, nic);
+    if (pending == null) return (false, "Pending registration not found.");
+
+    await _pendingRegistrationRepository.DeleteAsync(pending.Id!);
+
+    if (!string.IsNullOrEmpty(pending.NicDocumentId))
+    {
+        try { await _dbContext.GridFSBucket.DeleteAsync(new MongoDB.Bson.ObjectId(pending.NicDocumentId)); } catch {}
+    }
+
+    await _emailService.SendEmailAsync(pending.Email, "Registration Rejected", 
+        $"Your registration for Smart Solar Microgrid has been rejected by the backoffice team.\n\nReason: {reason}\n\nPlease correct the issues and try registering again.");
+
+    return (true, "Registration rejected and user notified.");
+}
+
     public async Task<(bool Success, string Message, byte[]? FileBytes, string? ContentType, string? FileName)> GetNicDocumentAsync(string nic)
     {
         string? documentId = null;
@@ -438,6 +456,90 @@ public class UserService
         catch
         {
             return (false, "Failed to retrieve NIC document.", null, null, null);
+        }
+    }
+
+    public async Task<(bool Success, string Message, string? AiResponse)> ValidateNicWithAiAsync(string nic)
+    {
+        var docResult = await GetNicDocumentAsync(nic);
+        if (!docResult.Success || docResult.FileBytes == null)
+        {
+            return (false, "Could not find NIC document to validate.", null);
+        }
+
+        try
+        {
+            using var client = new System.Net.Http.HttpClient();
+            client.DefaultRequestHeaders.Add("apikey", "helloworld"); // Free test key
+            
+            // Prepare the file for upload
+            var content = new System.Net.Http.MultipartFormDataContent();
+            var fileContent = new System.Net.Http.ByteArrayContent(docResult.FileBytes);
+            
+            // Set content type based on extension
+            string fileName = docResult.FileName ?? "document.jpg";
+            string mimeType = docResult.ContentType ?? "image/jpeg";
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(mimeType);
+            
+            content.Add(fileContent, "file", fileName);
+
+            // Call OCR.space API
+            var response = await client.PostAsync("https://api.ocr.space/parse/image", content);
+            var responseStr = await response.Content.ReadAsStringAsync();
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return (false, "Failed to connect to OCR service.", null);
+            }
+
+            using var document = System.Text.Json.JsonDocument.Parse(responseStr);
+            var root = document.RootElement;
+            
+            if (root.TryGetProperty("IsErroredOnProcessing", out var isErrored) && isErrored.GetBoolean())
+            {
+                var errorMsg = root.GetProperty("ErrorMessage").EnumerateArray().FirstOrDefault().GetString();
+                return (false, $"OCR Processing Error: {errorMsg}", null);
+            }
+
+            // Extract parsed text
+            var parsedResults = root.GetProperty("ParsedResults");
+            if (parsedResults.GetArrayLength() == 0)
+            {
+                return (true, "Success", "❌ INVALID DOCUMENT: Could not detect any readable text in this image.");
+            }
+
+            string parsedText = parsedResults[0].GetProperty("ParsedText").GetString() ?? "";
+
+            // Regex to find Sri Lankan NIC formats (e.g. 199912345678 or 991234567V)
+            var nicMatch = System.Text.RegularExpressions.Regex.Match(parsedText, @"\b(?:19|20)?\d{2}[0-35-8]\d{7}\b|\b\d{9}[vVxX]\b");
+            var nameMatch = System.Text.RegularExpressions.Regex.Match(parsedText, @"(?i)(?:Name|Name in Full)[\s:]*([A-Za-z\s\.]+)");
+
+            string report = "";
+            if (nicMatch.Success)
+            {
+                report += $"✅ VALID NIC DETECTED!\nFound NIC Number: {nicMatch.Value.ToUpper()}\n\n";
+            }
+            else if (parsedText.Contains("Identity Card", StringComparison.OrdinalIgnoreCase) || parsedText.Contains("National", StringComparison.OrdinalIgnoreCase))
+            {
+                report += "⚠️ PARTIAL MATCH: Found ID keywords, but could not read the exact NIC Number clearly.\n\n";
+            }
+            else
+            {
+                report += "❌ INVALID DOCUMENT: Could not find any NIC numbers or keywords. This might be a selfie or random document.\n\n";
+            }
+
+            if (nameMatch.Success)
+            {
+                report += $"Detected Name: {nameMatch.Groups[1].Value.Trim()}\n";
+            }
+
+            report += "\n--- Raw Scanned Text ---\n" + parsedText.Replace("\r", " ").Replace("\n", " ");
+
+            return (true, "Success", report);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error contacting OCR service: {ex.Message}", null);
         }
     }
 

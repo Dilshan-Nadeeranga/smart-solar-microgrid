@@ -7,7 +7,6 @@ const ACTIONS = [
   { to: '/dashboard/stations/create', label: 'Create station', icon: PlusIcon },
   { to: '/dashboard/users/create-staff', label: 'Create staff', icon: UserPlusIcon, backofficeOnly: true },
   { to: '/dashboard/slot-lookup', label: 'Slot lookup', icon: SearchIcon },
-  { to: '/dashboard/users/create-prosumer', label: 'Create prosumer', icon: UserPlusIcon, backofficeOnly: true },
 ]
 
 export default function QuickActions({ isBackoffice }) {
